@@ -110,7 +110,7 @@ const Users = () => {
       .then((response) => {
         console.log(response);
         if (response.status === 200) {
-          toast.success('Sent')
+          toast.success('Reset request sent')
         }
         else {
           toast.error('Failed')

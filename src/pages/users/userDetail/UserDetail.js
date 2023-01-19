@@ -1,9 +1,10 @@
 /* eslint-disable react/jsx-pascal-case */
-import { Box, Button, Checkbox, Container, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Grid, MenuItem, TextField, Typography } from '@material-ui/core';
+import { Box, Button, Checkbox, Container, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Grid, MenuItem, TextField, Typography, InputLabel } from '@material-ui/core';
 import axios from 'axios';
 import LinearProgress from '@mui/material/LinearProgress';
 import toast, { Toaster } from "react-hot-toast";
-import React, { useEffect } from 'react'
+import React, { useEffect } from 'react';
+import WarningRoundedIcon from '@mui/icons-material/WarningRounded';
 import { useParams, useHistory, Link } from 'react-router-dom'
 import Loading from '../../../components/loading/Loading';
 import { useStyles } from './UserDetailStyle';
@@ -28,6 +29,7 @@ const UserDetail = (props) => {
     const [emailUpdated, setEmailUpdated] = React.useState(false);
     const [currentEmail, setCurrentEmail] = React.useState('');
     const [userObjPermission, setUserObjPermission] = React.useState({});
+    const [confirmStudProfileUpdate,setConfirmStudProfileUpdate] = React.useState({open : false, profileId : ''})
 
     if (!id) {
         id = props.userId;
@@ -236,7 +238,7 @@ const UserDetail = (props) => {
             .then((response) => {
                 console.log(response);
                 if (response.status === 200) {
-                    toast.success(response.data)
+                    toast.success('Reset request sent')
                 }
                 else {
                     toast.error(response.data)
@@ -266,6 +268,16 @@ const UserDetail = (props) => {
             });
     }
 
+    const handleProfileUpdate = (profileId) => {
+        if (profileList.find(profile => profile._id === userDetail.profile?._id)?.name === 'Student') {
+            console.log(profileList.find(profile => profile?.name === 'Student'));
+            setConfirmStudProfileUpdate({open : true, profileId})
+        }
+        else{
+            setUserDetail({ ...userDetail, profile: profileList.find(profile => profile._id === profileId) })
+        }
+    }
+
     if (isPageLoadingFailed) {
         return (
             <Box style={{ paddingTop: '50%', backgroundColor: 'white' }}>
@@ -289,13 +301,12 @@ const UserDetail = (props) => {
                             <Grid xs={6} md={6} justifyContent='flex-end' className={classes.gridElement}>
                                 <Custom_Button variant='contained' size="medium" label={isEditMode ? 'Save' : 'Edit'} accessGranted={userObjPermission.edit} onClick={handleButton} />
                             </Grid>
-                            <Grid xs={6} md={6} style={{flexDirection : 'row', justifyContent: 'space-between'}} className={classes.gridElement}>
+                            <Grid xs={6} md={6} style={{ flexDirection: 'row', justifyContent: 'space-between' }} className={classes.gridElement}>
                                 <Custom_Button variant='contained' size="medium" label={'Cancel'} disabled={!isEditMode} accessGranted={userObjPermission.edit} onClick={() => {
                                     setIsEditMode(false)
                                     getUserDetail()
                                 }} />
-                                <Custom_Button color="secondary" size="medium" label={'Reset Password'} accessGranted={userObjPermission.edit} onClick={handleInitiatePasswordReset} />
-                                {/* <Button color="secondary" size="medium" style={{ left: '50%' }} onClick={handleInitiatePasswordReset}>Reset Password</Button> */}
+                                {userDetail.profile?.name !== 'Student' && userDetail.profile?.name !== 'Caregiver' && <Custom_Button color="secondary" size="medium" label={'Reset Password'} accessGranted={userObjPermission.edit} onClick={handleInitiatePasswordReset} />}
                             </Grid>
                         </Grid>
                     </Box>) : <span></span>
@@ -306,7 +317,7 @@ const UserDetail = (props) => {
                 <Container style={{ paddingTop: 30, backgroundColor: 'white', paddingLeft: 45 }}>
                     <Grid container spacing={5} className={classes.grid}>
                         <Grid xs={12} md={6} className={classes.gridElement}>
-                            <Typography required className={classes.label}>Name :</Typography>
+                            <InputLabel required = {isEditMode} className={[classes.label, classes.required]}>Name :</InputLabel>
                             <TextField
                                 style={{ flex: 1 }}
                                 InputProps={{
@@ -324,7 +335,7 @@ const UserDetail = (props) => {
                             />
                         </Grid>
                         <Grid xs={12} md={6} className={classes.gridElement}>
-                            <Typography className={classes.label}>Active :</Typography>
+                            <InputLabel className={classes.label}>Active :</InputLabel>
                             <Checkbox
                                 style={{ bottom: '9px' }}
                                 disabled={!isEditMode}
@@ -341,7 +352,7 @@ const UserDetail = (props) => {
                             />
                         </Grid>
                         <Grid xs={12} md={6} className={classes.gridElement}>
-                            <Typography className={classes.label}>Email :</Typography>
+                            <InputLabel required = {isEditMode} className={[classes.label, classes.required]}>Email :</InputLabel>
                             <TextField
                                 style={{ flex: 1 }}
                                 InputProps={{
@@ -360,7 +371,7 @@ const UserDetail = (props) => {
                             />
                         </Grid>
                         <Grid xs={12} md={6} className={classes.gridElement}>
-                            <Typography className={classes.label}>Phone :</Typography>
+                            <InputLabel required = {isEditMode} className={[classes.label, classes.required]}>Phone :</InputLabel>
                             <TextField
                                 style={{ flex: 1 }}
                                 InputProps={{
@@ -379,7 +390,7 @@ const UserDetail = (props) => {
                             />
                         </Grid>
                         <Grid xs={12} md={6} className={classes.gridElement}>
-                            <Typography className={classes.label}>Profile :</Typography>
+                            <InputLabel className={classes.label}>Profile :</InputLabel>
 
                             <TextField
                                 id="profile"
@@ -390,10 +401,13 @@ const UserDetail = (props) => {
                                         profileList.find(profile => profile._id === userDetail.profile?._id)?.name :
                                         profileList.find(profile => profile._id === userDetail.profile?._id)?._id
                                 }
-                                onChange={(profileSel) => { setUserDetail({ ...userDetail, profile: profileList.find(profile => profile._id === profileSel.target.value) }) }}
+                                onChange={(profileSel) => {
+                                    handleProfileUpdate(profileSel.target.value)
+                                    //setUserDetail({ ...userDetail, profile: profileList.find(profile => profile._id === profileSel.target.value) })
+                                }}
                                 variant="standard"
                                 InputProps={{
-                                    readOnly: !isEditMode || profileList.find(profile => profile._id === userDetail.profile?._id)?.name === 'Student',
+                                    readOnly: !isEditMode,
                                     disableUnderline: !isEditMode,
                                     className: classes.inputDesign,
                                 }}
@@ -410,7 +424,7 @@ const UserDetail = (props) => {
                             </TextField>
                         </Grid>
                         <Grid xs={12} md={6} className={classes.gridElement}>
-                            <Typography style={{ paddingRight: 3 }} className={classes.label}>Profile Photo :</Typography>
+                            <InputLabel style={{ paddingRight: 3 }} className={classes.label}>Profile Photo :</InputLabel>
                             <Link>View</Link>
                         </Grid>
                     </Grid>
@@ -421,7 +435,7 @@ const UserDetail = (props) => {
                 <Container style={{ paddingTop: 30, backgroundColor: 'white', paddingLeft: 45 }}>
                     <Grid container spacing={5} className={classes.grid}>
                         <Grid xs={12} md={6} className={classes.gridElement}>
-                            <Typography className={[classes.label, classes.addressLine]}>Address Line 1 :</Typography>
+                            <InputLabel required = {isEditMode} className={[classes.label, classes.required, classes.addressLine]}>Address Line 1 :</InputLabel>
                             <TextField
                                 style={{ flex: 1 }}
                                 InputProps={{
@@ -439,7 +453,7 @@ const UserDetail = (props) => {
                             />
                         </Grid>
                         <Grid xs={12} md={6} className={classes.gridElement}>
-                            <Typography className={[classes.label, classes.addressLine]}>Address Line 2 :</Typography>
+                            <InputLabel className={[classes.label, classes.addressLine]}>Address Line 2 :</InputLabel>
                             <TextField
                                 style={{ flex: 1 }}
                                 InputProps={{
@@ -454,7 +468,7 @@ const UserDetail = (props) => {
                             />
                         </Grid>
                         <Grid xs={12} md={6} className={classes.gridElement}>
-                            <Typography className={classes.label}>City :</Typography>
+                            <InputLabel required = {isEditMode} className={[classes.label, classes.required]}>City :</InputLabel>
                             <TextField
                                 style={{ flex: 1 }}
                                 InputProps={{
@@ -472,7 +486,7 @@ const UserDetail = (props) => {
                             />
                         </Grid>
                         <Grid xs={12} md={6} className={classes.gridElement}>
-                            <Typography className={classes.label}>District :</Typography>
+                            <InputLabel required = {isEditMode} className={[classes.label, classes.required]}>District :</InputLabel>
                             <TextField
                                 style={{ flex: 1 }}
                                 InputProps={{
@@ -490,7 +504,7 @@ const UserDetail = (props) => {
                             />
                         </Grid>
                         <Grid xs={12} md={6} className={classes.gridElement}>
-                            <Typography className={classes.label}>State :</Typography>
+                            <InputLabel required = {isEditMode} className={[classes.label, classes.required]}>State :</InputLabel>
                             <TextField
                                 style={{ flex: 1 }}
                                 InputProps={{
@@ -508,7 +522,7 @@ const UserDetail = (props) => {
                             />
                         </Grid>
                         <Grid xs={12} md={6} className={classes.gridElement}>
-                            <Typography className={classes.label}>Country :</Typography>
+                            <InputLabel required = {isEditMode} className={[classes.label, classes.required]}>Country :</InputLabel>
                             <TextField
                                 style={{ flex: 1 }}
                                 InputProps={{
@@ -526,7 +540,7 @@ const UserDetail = (props) => {
                             />
                         </Grid>
                         <Grid xs={12} md={6} className={classes.gridElement}>
-                            <Typography className={classes.label}>PIN Code :</Typography>
+                            <InputLabel required = {isEditMode} className={[classes.label, classes.required]}>PIN Code :</InputLabel>
                             <TextField
                                 style={{ flex: 1 }}
                                 InputProps={{
@@ -602,6 +616,30 @@ const UserDetail = (props) => {
                             }}>Cancel</Button>
                         <Button onClick={handleUpdateUser} autoFocus>
                             Okay!
+                        </Button>
+                    </DialogActions>
+                </Dialog>
+                <Dialog
+                    open={confirmStudProfileUpdate.open}
+                    onClose={() => {setConfirmStudProfileUpdate({open : false, profileId : ''})}}
+                    aria-labelledby="alert-dialog-title"
+                    aria-describedby="alert-dialog-description"
+                >
+                    <DialogTitle id="alert-dialog-title">
+                        Are you sure!!
+                    </DialogTitle>
+                    <DialogContent>
+                        <DialogContentText id="alert-dialog-description">
+                            Updating student's profile will provide extra access. Please confirm to continue.
+                        </DialogContentText>
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={() => {setConfirmStudProfileUpdate({open : false, profileId : ''})}} autoFocus>Cancel</Button>
+                        <Button onClick={() => {
+                            setUserDetail({ ...userDetail, profile: profileList.find(profile => profile._id === confirmStudProfileUpdate.profileId) })
+                            setConfirmStudProfileUpdate({open : false, profileId : ''})
+                            }} autoFocus>
+                            Confirm
                         </Button>
                     </DialogActions>
                 </Dialog>

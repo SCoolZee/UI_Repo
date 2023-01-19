@@ -33,6 +33,7 @@ import { enrolmentHeader } from '../../../constants/EnrolmentTable';
 import Loading from '../../../components/loading/Loading';
 import EnrolmentEditModel from './EnrolmentEditModel';
 import EnrolmentHistory from './EnrolmentHistory';
+import { OBJECT } from '../../../constants/ObjectNames/documentObjNames';
 
 
 const Enrolments = () => {
@@ -54,13 +55,14 @@ const Enrolments = () => {
   const [tableData, setTableData] = React.useState([]);
   const [isPageLoading, setisPageLoading] = React.useState(false);
   const [anchorEl, setAnchorEl] = React.useState(null);
-  const [editEnrolment, setEditEnrolment] = React.useState({});
+  const [enrolmentInAction, setEnrolmentInAction] = React.useState({});
+  const [openEditEnrollModat, setOpenEnrollModel] = React.useState(false);
   const [showHistoryPaymentId, setShowHistoryPaymentId] = React.useState('');
   const [enrolementObjPermission, setEnrolmentobjPermission] = React.useState({});
 
   useEffect(() => {
     console.log(allClasses)
-  },[allClasses])
+  }, [allClasses])
 
   useEffect(() => {
     getAllClasses();
@@ -68,14 +70,14 @@ const Enrolments = () => {
   }, [])
 
   useEffect(() => {
-    console.log(editEnrolment)
-  }, [editEnrolment])
+    console.log(enrolmentInAction)
+  }, [enrolmentInAction])
 
   const getEnrolmentByFilter = async () => {
     unmounted = false;
     setisPageLoading(true);
     const source = axios.CancelToken.source();
-    await axios.get(`${process.env.REACT_APP_SERVER}/enrolment-info/enrolment/${classFilter}/${monthIndexFilter}/${new Date(yearFilter).getFullYear()}`)
+    await axios.get(`${process.env.REACT_APP_SERVER}/enrolment-info/${OBJECT.ENROLMENT}/${classFilter}/${monthIndexFilter}/${new Date(yearFilter).getFullYear()}`)
       .then((response) => {
         if (response.status === 200) {
           setEnrolmentobjPermission(response.data?.accessDefination);
@@ -109,7 +111,7 @@ const Enrolments = () => {
   const getAllClasses = async () => {
     unmounted = false;
     const source = axios.CancelToken.source();
-    await axios.get(`${process.env.REACT_APP_SERVER}/classes-info/class`)
+    await axios.get(`${process.env.REACT_APP_SERVER}/classes-info/${OBJECT.CLASS}`)
       .then((response) => {
         if (response.status === 200) {
           let classData = [];
@@ -140,8 +142,39 @@ const Enrolments = () => {
       });
   }
 
+  const handleResendPaymentLink = async(enrolmentInAction) => {
+    unmounted = false;
+    const source = axios.CancelToken.source();
+    await axios.patch(`${process.env.REACT_APP_SERVER}/resend-payment-link/${OBJECT.ASSESSMENT}`, {
+      enrolmentId: enrolmentInAction._id,
+      paymentLinkId : enrolmentInAction?.payments?.paymentLinkID
+  })
+  .then((response) => {
+    console.log(response)
+  })
+  .catch((error) => {
+    if (!unmounted) {
+      console.log(error)
+      if (error.request.status === 403) {
+        localStorage.removeItem('userDetail');
+        localStorage.removeItem('userToken');
+        localStorage.removeItem('activeSubscription');
+        history.replace('/login');
+        history.go(0);
+      }
+    }
+  })
+  .finally(() => {
+    return function () {
+      unmounted = true;
+      source.cancel("Cancelling in cleanup");
+    };
+  });
+  }
+
   const open = Boolean(anchorEl);
-  const handleClick = (event) => {
+  const handleClick = (event,row) => {
+    setEnrolmentInAction(row)
     setAnchorEl(event.currentTarget);
   };
   const handleClose = () => {
@@ -173,6 +206,10 @@ const Enrolments = () => {
     else {
       setTableData([...enrolmentDetails?.filter(enrolment => enrolment.student.name?.includes(searchString))]);
     }
+  }
+
+  const handleOpenEditEnrollModal = () => {
+    setOpenEnrollModel(true)
   }
 
   const studentDetails = (row) => {
@@ -347,12 +384,12 @@ const Enrolments = () => {
                     .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                     .map((row, index) => {
                       return (
-                        <TableRow hover role="checkbox" tabIndex={-1} key={row._id}>
-                          {enrolmentHeader.map((column) => {
+                        <TableRow hover role="checkbox" tabIndex={-1} key={index}>
+                          {enrolmentHeader.map((column, headerIndex) => {
                             return (
-                              <TableCell key={column.id} align={column.align}>
+                              <TableCell align={column.align} key={headerIndex + '_' + index}>
                                 {(column.id === 'name') ?
-                                  <HtmlTooltip title={studentDetails(row)} placement="top" arrow classes={{ arrow: classes.tooltipArrow }}>
+                                  <HtmlTooltip key={headerIndex + '_' + index} title={studentDetails(row)} placement="top" arrow classes={{ arrow: classes.tooltipArrow }}>
                                     <span style={{ marginBottom: "20px", cursor: 'pointer' }}>
                                       {row.student?.name}
                                     </span>
@@ -361,12 +398,13 @@ const Enrolments = () => {
                                     : (column.id === 'phone') ? row.student?.phone1
                                       : (column.id === 'status') ? row.payments?.status
                                         : (column.id === 'action') ?
-                                          <span>
+                                          <span key={headerIndex}>
                                             {/* <ActionItems props={row} /> */}
-                                            <IconButton onClick={handleClick} type="button" sx={{ p: '10px' }} aria-label="actions">
+                                            <IconButton key={headerIndex} onClick={(event) => {handleClick(event,row)}} type="button" sx={{ p: '10px' }} aria-label="actions">
                                               <ArrowDropDownIcon />
                                             </IconButton>
                                             <Menu
+                                              key={index + '_' + headerIndex}
                                               anchorEl={anchorEl}
                                               id="account-menu"
                                               open={open}
@@ -375,7 +413,7 @@ const Enrolments = () => {
                                               PaperProps={{
                                                 elevation: 0,
                                                 sx: {
-                                                  margin: 0,
+                                                  marginTop: -12,
                                                   overflow: 'visible',
                                                   filter: 'drop-shadow(0px 0px 1px rgba(0,0,0,0.32))',
                                                   mt: 1.5,
@@ -403,19 +441,17 @@ const Enrolments = () => {
                                               anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
                                             >
                                               {enrolementObjPermission.edit &&
-                                                <React.Fragment>
-                                                  <MenuItem data-id={row._id} onClick={() => {
-                                                    let tempList = row
-                                                    setEditEnrolment(tempList)
-                                                  }}>
+                                                <span>
+                                                  <MenuItem key={index + '_' + headerIndex} onClick={() => { handleOpenEditEnrollModal() }}>
                                                     Edit
                                                   </MenuItem>
                                                   <Divider />
-                                                </React.Fragment>}
-                                                {enrolementObjPermission.create &&<MenuItem onClick={() => { }}>
-                                                Resend Payment Link
-                                              </MenuItem>}
-                                              <MenuItem onClick={() => { setShowHistoryPaymentId(row.payments._id) }}>
+                                                </span>}
+                                              {enrolementObjPermission.create &&
+                                                <MenuItem disabled = {enrolmentInAction?.payments?.status === 'Complete'} onClick={() => { handleResendPaymentLink(enrolmentInAction) }}>
+                                                  Resend Payment Link
+                                                </MenuItem>}
+                                              <MenuItem onClick={() => { setShowHistoryPaymentId(enrolmentInAction.payments._id) }}>
                                                 Track History
                                               </MenuItem>
                                             </Menu>
@@ -447,12 +483,13 @@ const Enrolments = () => {
 
         <Dialog
           classes={{ paper: classes.paper }}
-          open={JSON.stringify(editEnrolment) !== JSON.stringify({})}
+          open={openEditEnrollModat}
           aria-labelledby="alert-dialog-title"
           aria-describedby="alert-dialog-description"
         >
-          <EnrolmentEditModel style={{ width: '100%' }} editEnrolment={editEnrolment} handleEditCancel={() => {
-            setEditEnrolment({})
+          <EnrolmentEditModel style={{ width: '100%' }} editEnrolment={enrolmentInAction} handleEditCancel={() => {
+            setEnrolmentInAction({})
+            setOpenEnrollModel(false)
             getEnrolmentByFilter()
           }} />
         </Dialog>

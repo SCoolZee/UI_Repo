@@ -26,6 +26,7 @@ const EnrolmentHistory = (props) => {
     const [historydata, sethistoryData] = React.useState([])
 
     useEffect(() => {
+        console.log(props)
         getPaymentDetailsById();
     }, []);
 

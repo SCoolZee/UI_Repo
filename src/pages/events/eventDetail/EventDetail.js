@@ -32,6 +32,7 @@ import { columns } from '../../../constants/UsersTableHeaders';
 import AddAudience from './AddAudience';
 import AuditFields from '../../commomPages/AuditFields';
 import Custom_Button from '../../../components/reusableElements/Custom_Button';
+import { OBJECT } from '../../../constants/ObjectNames/documentObjNames';
 
 const EventDetail = (params) => {
 
@@ -65,7 +66,7 @@ const EventDetail = (params) => {
         setisPageLoading(true)
         unmounted = false;
         const source = axios.CancelToken.source();
-        await axios.get(`${process.env.REACT_APP_SERVER}/active-users-info/user`)
+        await axios.get(`${process.env.REACT_APP_SERVER}/active-users-info/${OBJECT.USER}`)
             .then((response) => {
                 console.log(response.data);
                 setAllActiveUsers(response.data)
@@ -118,7 +119,7 @@ const EventDetail = (params) => {
         unmounted = false;
         setisPageLoading(true)
         const source = axios.CancelToken.source();
-        await axios.patch(`${process.env.REACT_APP_SERVER}/update-event/event`, {
+        await axios.patch(`${process.env.REACT_APP_SERVER}/update-event/${OBJECT.EVENT}`, {
             updatedEvent: savedEvent
         })
             .then((response) => {
@@ -160,7 +161,7 @@ const EventDetail = (params) => {
         setisPageLoading(true);
         unmounted = false;
         const source = axios.CancelToken.source();
-        await axios.delete(`${process.env.REACT_APP_SERVER}/delete-event/event/${savedEvent?._id}`)
+        await axios.delete(`${process.env.REACT_APP_SERVER}/delete-event/${OBJECT.EVENT}/${savedEvent?._id}`)
             .then((response) => {
                 if (response.status === 200) {
                     setisPageLoading(false);
@@ -195,7 +196,7 @@ const EventDetail = (params) => {
         setisPageLoading(true);
         unmounted = false;
         const source = axios.CancelToken.source();
-        await axios.patch(`${process.env.REACT_APP_SERVER}/send-event-remainder/event`,
+        await axios.patch(`${process.env.REACT_APP_SERVER}/send-event-remainder/${OBJECT.EVENT}`,
             {
                 eventId: savedEvent._id
             })

@@ -27,8 +27,8 @@ const InstitutionReg = (props) => {
   const [addrLine2, setAddrLine2] = React.useState(props.institutionDetails.addressLine2 || '');
   const [city, setCity] = React.useState(props.institutionDetails.city || '');
   const [district, setDistrict] = React.useState(props.institutionDetails.district || '');
-  const [state, setState] = React.useState(props.institutionDetails.state || {});
-  const [country, setCountry] = React.useState(props.institutionDetails.country || {});
+  const [state, setState] = React.useState(props.institutionDetails.state || '');
+  const [country, setCountry] = React.useState(props.institutionDetails.country || '');
   const [pinCode, setPincode] = React.useState(props.institutionDetails.zipCode || '');
   const [invalidList, setInvalidList] = React.useState([]);
   const [isPageLoading, setisPageLoading] = React.useState(false);
@@ -44,8 +44,8 @@ const InstitutionReg = (props) => {
   }, [])
 
   React.useEffect(() => {
-    if (JSON.stringify(country) === JSON.stringify({}) || country === undefined) {
-      setCountry(countryDetails.find(country => country.iso3 === 'IND'));
+    if (country === '' || country === undefined) {
+      setCountry(countryDetails.find(country => country.iso3 === 'IND')?.name);
     }
   }, [countryDetails])
 
@@ -254,12 +254,12 @@ const InstitutionReg = (props) => {
                   <InputLabel required htmlFor="component-error">State</InputLabel>
                   <Autocomplete
                     sx={{ width: 305, bottom: 5, position: 'relative', marginTop: '8px' }}
-                    options={country?.states || []}
+                    options={countryDetails?.find(ctry => ctry.name === country)?.states || []}
                     autoHighlight
-                    value={state || {}}
+                    value={countryDetails?.find(ctry => ctry.name === country)?.states?.find(st => st.name === state) || ''}
                     getOptionLabel={(option) => option.name || ''}
                     id="state"
-                    onChange={(event, value) => { setState(value) }}
+                    onChange={(event, value) => { setState(value.name) }}
                     renderInput={(params) => (
                       <TextField
                         {...params}
@@ -274,16 +274,6 @@ const InstitutionReg = (props) => {
                       />
                     )}
                   />
-                  {/* <TextField
-                    error={invalidList.includes('state')}
-                    id="state"
-                    value={state}
-                    onChange={(state) => { setState(state.target.value) }}
-                    aria-describedby="component-error-text"
-                    helperText={!invalidList.includes('state') ? '' : "State is invalid"}
-                    variant="standard"
-                    className={classes.input}
-                  /> */}
                 </Container>
                 <Container className={classes.inputContainer}>
                   <InputLabel required htmlFor="component-error">Country</InputLabel>
@@ -292,12 +282,12 @@ const InstitutionReg = (props) => {
                     options={countryDetails}
                     autoHighlight
                     ListboxProps={{ style: { maxHeight: 270 } }}
-                    value={country || {}}
+                    value={countryDetails?.find(ctry => ctry.name === country) || {}}
                     getOptionLabel={(option) => option.name || ''}
                     id="country"
                     onChange={(event, value) => {
                       setState('')
-                      setCountry(value)
+                      setCountry(value.name)
                     }}
                     renderOption={(props, option) => (
                       <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0, margin: 5 } }} {...props}>

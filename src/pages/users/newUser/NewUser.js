@@ -1,7 +1,6 @@
 /* eslint-disable react/jsx-pascal-case */
-import { Box, Button, Container, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Grid, MenuItem, TextField, Typography } from '@material-ui/core';
+import { Box, Button, Container,InputLabel, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Grid, MenuItem, TextField, Typography } from '@material-ui/core';
 import axios from 'axios';
-import WarningRoundedIcon from '@mui/icons-material/WarningRounded';
 import toast, { Toaster } from "react-hot-toast";
 import React, { useEffect } from 'react'
 import { useHistory } from 'react-router-dom'
@@ -64,6 +63,14 @@ const NewUser = (params) => {
         // console.log(countryDetails.find(country => country.iso3 === 'IND'))
         setSelectedCountry(countryDetails.find(country => country.iso3 === 'IND'));
         setSelectedCaregiverCountry(countryDetails.find(country => country.iso3 === 'IND'));
+        setUserAddress({
+            ...userAddress,
+            country: countryDetails.find(country => country.iso3 === 'IND')?.name
+        });
+        setCaregiverAddress({
+            ...caregiverAddress,
+            country: countryDetails.find(country => country.iso3 === 'IND')?.name
+        });
     }, [countryDetails])
 
     const getCountryDetails = async () => {
@@ -252,14 +259,15 @@ const NewUser = (params) => {
     const handleUserStateChange = (state) => {
         setUserAddress({
             ...userAddress,
-            state: state.value
+            state: state.name
         });
     }
     const handleUserCountryChange = (country) => {
         setSelectedCountry(country)
         setUserAddress({
             ...userAddress,
-            country: country.name
+            country: country.name,
+            state: {}
         });
     }
     const handleUserZipCodeChange = (zipCode) => {
@@ -284,19 +292,19 @@ const NewUser = (params) => {
             tempInvalidList.push('name');
             isValid = false;
         }
-        if (userDetail.profile && userDetail.profile !== profileList.find(profile => profile.name === 'Student')?._id && !userDetail.phone1) {
+        if (!userDetail.phone1) {
             tempInvalidList.push('phone');
             isValid = false;
         }
-        if (userDetail.profile && userDetail.profile !== profileList.find(profile => profile.name === 'Student')?._id && /[a-zA-Z]/g.test(userDetail.phone1)) {
+        if (/[a-zA-Z]/g.test(userDetail.phone1)) {
             tempInvalidList.push('phoneInvalid');
             isValid = false;
         }
-        if (userDetail.profile && userDetail.profile !== profileList.find(profile => profile.name === 'Student')?._id && userDetail.phone1?.length !== 10) {
+        if (userDetail.phone1?.length !== 10) {
             tempInvalidList.push('phoneInvalid');
             isValid = false;
         }
-        if (userDetail.profile && userDetail.profile !== profileList.find(profile => profile.name === 'Student')?._id && !userDetail.email) {
+        if (!userDetail.email) {
             tempInvalidList.push('email');
             isValid = false;
         }
@@ -328,6 +336,7 @@ const NewUser = (params) => {
             tempInvalidList.push('state');
             isValid = false;
         }
+        console.log(userAddress)
         if (!userAddress.country) {
             tempInvalidList.push('country');
             isValid = false;
@@ -484,7 +493,7 @@ const NewUser = (params) => {
                 <Container style={{ paddingTop: 30 }}>
                     <Grid container spacing={5} className={classes.grid}>
                         <Grid xs={12} md={6} className={classes.gridElement}>
-                            <Typography className={classes.label}>Name :</Typography>
+                            <InputLabel required className={[classes.label, classes.required]} htmlFor="component-error">Name :</InputLabel>
                             <TextField
                                 style={{ flex: 1 }}
                                 inputProps={{
@@ -501,7 +510,7 @@ const NewUser = (params) => {
                             />
                         </Grid>
                         <Grid xs={12} md={6} className={classes.gridElement}>
-                            <Typography className={classes.label}>Email :</Typography>
+                            <InputLabel required className={[classes.label, classes.required]}>Email :</InputLabel>
                             <TextField
                                 style={{ flex: 1 }}
                                 inputProps={{
@@ -519,7 +528,7 @@ const NewUser = (params) => {
                             />
                         </Grid>
                         <Grid xs={12} md={6} className={classes.gridElement}>
-                            <Typography className={classes.label}>Phone :</Typography>
+                            <InputLabel required className={[classes.label, classes.required]}>Phone :</InputLabel>
                             <TextField
                                 style={{ flex: 1 }}
                                 inputProps={{
@@ -537,7 +546,7 @@ const NewUser = (params) => {
                             />
                         </Grid>
                         <Grid xs={12} md={6} className={classes.gridElement}>
-                            <Typography className={classes.label}>Profile :</Typography>
+                            <InputLabel required className={[classes.label, classes.required]}>Profile :</InputLabel>
 
                             <TextField
                                 id="profile"
@@ -549,16 +558,6 @@ const NewUser = (params) => {
                                 }
                                 onChange={(profileSel) => {
                                     setUserDetail({ ...userDetail, profile: profileList.find(profile => profile._id === profileSel.target.value)?._id })
-                                    if (profileList.find(profile => profile._id === profileSel.target.value)?.name === 'Student') {
-                                        toast(
-                                            <span style={{ color: '#FF9900' }}>
-                                                <b>Student</b> profile cannot be modified, once saved!!
-                                            </span>,
-                                            {
-                                                icon: <WarningRoundedIcon style={{ color: "#FF9900" }} />,
-                                            }
-                                        );
-                                    }
                                 }}
                                 variant="standard"
                                 inputProps={{
@@ -577,7 +576,7 @@ const NewUser = (params) => {
                             </TextField>
                         </Grid>
                         <Grid xs={12} md={6} className={classes.gridElement}>
-                            <Typography className={classes.label}>DOB :</Typography>
+                            <InputLabel className={[classes.label, classes.required]}>DOB :</InputLabel>
                             <LocalizationProvider dateAdapter={AdapterDateFns}>
                                 <DesktopDatePicker
                                     inputFormat="dd/MM/yyyy"
@@ -591,7 +590,7 @@ const NewUser = (params) => {
                         {profileList.find(profile => profile._id === userDetail.profile)?.name === 'Student' &&
                             <Grid xs={12} md={6} style={{ marginTop: 0 }} className={classes.gridElement}>
                                 <Grid xs={12} md={6} className={classes.gridElement}>
-                                    <Typography className={classes.label}>Class :</Typography>
+                                    <InputLabel required className={[classes.label, classes.required]}>Class :</InputLabel>
                                     <TextField
                                         id="class"
                                         style={{ flex: 1 }}
@@ -623,7 +622,7 @@ const NewUser = (params) => {
                                     </TextField>
                                 </Grid>
                                 <Grid xs={12} md={6} className={classes.gridElement}>
-                                    <Typography className={classes.label}>Section :</Typography>
+                                    <InputLabel required className={[classes.label, classes.required]}>Section :</InputLabel>
                                     <TextField
                                         id="class"
                                         style={{ flex: 1 }}
@@ -664,7 +663,7 @@ const NewUser = (params) => {
                 <Container style={{ paddingTop: 30 }}>
                     <Grid container spacing={5} className={classes.grid}>
                         <Grid xs={12} md={6} className={classes.gridElement}>
-                            <Typography className={[classes.label, classes.addressLine]}>Address Line 1 :</Typography>
+                            <InputLabel required className={[classes.label, classes.required,classes.addressLine]}>Address Line 1 :</InputLabel>
                             <TextField
                                 style={{ flex: 1 }}
                                 inputProps={{
@@ -681,7 +680,7 @@ const NewUser = (params) => {
                             />
                         </Grid>
                         <Grid xs={12} md={6} className={classes.gridElement}>
-                            <Typography className={[classes.label, classes.addressLine]}>Address Line 2 :</Typography>
+                            <InputLabel className={[classes.label, classes.addressLine]}>Address Line 2 :</InputLabel>
                             <TextField
                                 style={{ flex: 1 }}
                                 inputProps={{
@@ -695,7 +694,7 @@ const NewUser = (params) => {
                             />
                         </Grid>
                         <Grid xs={12} md={6} className={classes.gridElement}>
-                            <Typography className={classes.label}>City :</Typography>
+                            <InputLabel required className={[classes.label, classes.required]}>City :</InputLabel>
                             <TextField
                                 style={{ flex: 1 }}
                                 inputProps={{
@@ -712,7 +711,7 @@ const NewUser = (params) => {
                             />
                         </Grid>
                         <Grid xs={12} md={6} className={classes.gridElement}>
-                            <Typography className={classes.label}>District :</Typography>
+                            <InputLabel required className={[classes.label, classes.required]}>District :</InputLabel>
                             <TextField
                                 style={{ flex: 1 }}
                                 inputProps={{
@@ -729,12 +728,12 @@ const NewUser = (params) => {
                             />
                         </Grid>
                         <Grid xs={12} md={6} className={classes.gridElement}>
-                            <Typography className={classes.label}>State :</Typography>
+                            <InputLabel required className={[classes.label, classes.required]}>State :</InputLabel>
                             <Autocomplete
                                 sx={{ width: 355, bottom: 5, position: 'relative', marginLeft: '8px' }}
                                 options={selectedCountry?.states || []}
                                 autoHighlight
-                                //value={selectedCountry || {}}
+                                value={selectedCountry?.states?.find(state => state.name === userAddress?.state) || {}}
                                 getOptionLabel={(option) => option.name || ''}
                                 id="state"
                                 onChange={(event, value) => { handleUserStateChange(value) }}
@@ -754,7 +753,7 @@ const NewUser = (params) => {
                             />
                         </Grid>
                         <Grid xs={12} md={6} className={classes.gridElement}>
-                            <Typography className={classes.label}>Country :</Typography>
+                            <InputLabel required className={[classes.label, classes.required]}>Country :</InputLabel>
                             <Autocomplete
                                 sx={{ width: 355, bottom: 5, position: 'relative', marginLeft: '8px' }}
                                 options={countryDetails}
@@ -763,10 +762,6 @@ const NewUser = (params) => {
                                 getOptionLabel={(option) => option.name || ''}
                                 id="country"
                                 onChange={(event, value) => {
-                                    setUserAddress({
-                                        ...userAddress,
-                                        state: ''
-                                    });
                                     handleUserCountryChange(value)
                                 }}
                                 renderOption={(props, option) => (
@@ -797,7 +792,7 @@ const NewUser = (params) => {
                             />
                         </Grid>
                         <Grid xs={12} md={6} className={classes.gridElement}>
-                            <Typography className={classes.label}>PIN Code :</Typography>
+                            <InputLabel required className={[classes.label, classes.required]}>PIN Code :</InputLabel>
                             <TextField
                                 style={{ flex: 1 }}
                                 inputProps={{
@@ -831,7 +826,7 @@ const NewUser = (params) => {
                         <Container style={{ paddingTop: 30 }}>
                             <Grid container spacing={5} className={classes.grid}>
                                 <Grid xs={12} md={6} className={classes.gridElement}>
-                                    <Typography className={classes.label}>Name :</Typography>
+                                    <InputLabel required className={[classes.label, classes.required]}>Name :</InputLabel>
                                     <TextField
                                         style={{ flex: 1 }}
                                         inputProps={{
@@ -840,7 +835,7 @@ const NewUser = (params) => {
                                         disabled={existingCareTaker}
                                         placeholder={`Caregiver Name`}
                                         helperText={!invalidList.includes('caregiverName') ? '' : "Name is required"}
-                                        error={invalidList.includes('name')}
+                                        error={invalidList.includes('caregiverName')}
                                         onFocus={() => { setInvalidList(invalidList.filter(value => value !== 'caregiverName')) }}
                                         value={caregiverDetail?.name || ''}
                                         id="caregiverName"
@@ -849,7 +844,7 @@ const NewUser = (params) => {
                                     />
                                 </Grid>
                                 <Grid xs={12} md={6} className={classes.gridElement}>
-                                    <Typography className={classes.label}>Email :</Typography>
+                                    <InputLabel required className={[classes.label, classes.required]}>Email :</InputLabel>
                                     <TextField
                                         style={{ flex: 1 }}
                                         inputProps={{
@@ -868,7 +863,7 @@ const NewUser = (params) => {
                                     />
                                 </Grid>
                                 <Grid xs={12} md={6} className={classes.gridElement}>
-                                    <Typography className={classes.label}>Phone :</Typography>
+                                    <InputLabel required className={[classes.label, classes.required]}>Phone :</InputLabel>
                                     <TextField
                                         style={{ flex: 1 }}
                                         inputProps={{
@@ -893,7 +888,7 @@ const NewUser = (params) => {
                         </Typography>
                         <Container style={{ paddingTop: 30 }}>
                             <Grid container spacing={5} style={{ marginBottom: 10 }} className={classes.grid}>
-                                <Typography style={{ paddingTop: 7, fontWeight: 800 }} className={[classes.label, classes.addressLine]}>Same as Student Address :</Typography>
+                                <InputLabel style={{ paddingTop: 7, fontWeight: 800 }} className={[classes.label, classes.addressLine]}>Same as Student Address :</InputLabel>
                                 <Checkbox color="success" disabled={existingCareTaker} onChange={(changeVal) => {
                                     if (changeVal.target.checked) {
                                         setIsSameAddress(true)
@@ -907,7 +902,7 @@ const NewUser = (params) => {
                             </Grid>
                             <Grid container spacing={5} className={classes.grid}>
                                 <Grid xs={12} md={6} className={classes.gridElement}>
-                                    <Typography className={[classes.label, classes.addressLine]}>Address Line 1 :</Typography>
+                                    <InputLabel required className={[classes.label, classes.required, classes.addressLine]}>Address Line 1 :</InputLabel>
                                     <TextField
                                         style={{ flex: 1 }}
                                         inputProps={{
@@ -925,7 +920,7 @@ const NewUser = (params) => {
                                     />
                                 </Grid>
                                 <Grid xs={12} md={6} className={classes.gridElement}>
-                                    <Typography className={[classes.label, classes.addressLine]}>Address Line 2 :</Typography>
+                                    <InputLabel className={[classes.label, classes.addressLine]}>Address Line 2 :</InputLabel>
                                     <TextField
                                         style={{ flex: 1 }}
                                         inputProps={{
@@ -940,7 +935,7 @@ const NewUser = (params) => {
                                     />
                                 </Grid>
                                 <Grid xs={12} md={6} className={classes.gridElement}>
-                                    <Typography className={classes.label}>City :</Typography>
+                                    <InputLabel required className={[classes.label, classes.required]}>City :</InputLabel>
                                     <TextField
                                         style={{ flex: 1 }}
                                         inputProps={{
@@ -958,7 +953,7 @@ const NewUser = (params) => {
                                     />
                                 </Grid>
                                 <Grid xs={12} md={6} className={classes.gridElement}>
-                                    <Typography className={classes.label}>District :</Typography>
+                                    <InputLabel required className={[classes.label, classes.required]}>District :</InputLabel>
                                     <TextField
                                         style={{ flex: 1 }}
                                         inputProps={{
@@ -976,7 +971,7 @@ const NewUser = (params) => {
                                     />
                                 </Grid>
                                 <Grid xs={12} md={6} className={classes.gridElement}>
-                                    <Typography className={classes.label}>State :</Typography>
+                                    <InputLabel required className={[classes.label, classes.required]}>State :</InputLabel>
                                     <Autocomplete
                                         sx={{ width: 355, bottom: 5, position: 'relative', marginLeft: '8px' }}
                                         options={selectedCaregiverCountry.states || []}
@@ -1001,7 +996,7 @@ const NewUser = (params) => {
                                     />
                                 </Grid>
                                 <Grid xs={12} md={6} className={classes.gridElement}>
-                                    <Typography className={classes.label}>Country :</Typography>
+                                    <InputLabel required className={[classes.label, classes.required]}>Country :</InputLabel>
                                     <Autocomplete
                                         sx={{ width: 355, bottom: 5, position: 'relative', marginLeft: '8px' }}
                                         options={countryDetails}
@@ -1010,9 +1005,8 @@ const NewUser = (params) => {
                                         getOptionLabel={(option) => option.name || ''}
                                         id="country"
                                         onChange={(event, value) => {
-                                            setCaregiverAddress({ ...caregiverAddress, state: '' })
+                                            setCaregiverAddress({ ...caregiverAddress, state: {}, country: value })
                                             setSelectedCaregiverCountry(value)
-                                            setCaregiverAddress({ ...caregiverAddress, country: value })
                                         }}
                                         renderOption={(props, option) => (
                                             <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0, margin: 5 } }} {...props}>
@@ -1042,7 +1036,7 @@ const NewUser = (params) => {
                                     />
                                 </Grid>
                                 <Grid xs={12} md={6} className={classes.gridElement}>
-                                    <Typography className={classes.label}>PIN Code :</Typography>
+                                    <InputLabel required className={[classes.label, classes.required]}>PIN Code :</InputLabel>
                                     <TextField
                                         style={{ flex: 1 }}
                                         inputProps={{

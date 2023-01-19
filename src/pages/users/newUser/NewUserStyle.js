@@ -107,5 +107,12 @@ export const useStyles = makeStyles(theme => ({
         },
         backgroundColor: 'white',
         padding: '15px'
-    }
+    },
+   required: {
+    display: 'flex',
+    flexDirection: 'row-reverse',
+    '& > .MuiFormLabel-asterisk':{
+       // color: 'red'
+        }
+}
 }))

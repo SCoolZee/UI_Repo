@@ -1,4 +1,4 @@
-import React from 'react'
+import React, {useEffect, useState} from 'react'
 import axios from 'axios';
 import Grid from '@mui/material/Grid';
 import toast, { Toaster } from 'react-hot-toast';
@@ -16,14 +16,20 @@ const EnrolmentEditModel = (props) => {
 
     let unmounted = false;
 
+    useEffect(() => {
+        console.log(props);
+        setUpdatingEnrolment(props.editEnrolment?.payments)
+    },[])
+
     const [isPageLoading, setisPageLoading] = React.useState(false);
+    const [updatingEnrolment, setUpdatingEnrolment] = React.useState({})
 
     const handleEnrolUpdate = async () => {
         unmounted = false;
         setisPageLoading(true)
         const source = axios.CancelToken.source();
         await axios.patch(`${process.env.REACT_APP_SERVER}/update-enrolment/enrolment`, {
-            updatedEnrolment: props.editEnrolment
+            updatedEnrolment: updatingEnrolment
         })
             .then((response) => {
                 console.log(response)
@@ -122,15 +128,18 @@ const EnrolmentEditModel = (props) => {
                         <Grid item xs={6}>
                             <Box style={{ marginBottom: 5 }}>
                                 <Typography style={{ paddingTop: 5, paddingRight: 5 }} className={classes.label}>Status :</Typography>
-                                {console.log(enrolmentStatus.find(enrol => enrol.key === props.editEnrolment?.payments?.status))}
+                                {console.log(enrolmentStatus.find(enrol => enrol.key === updatingEnrolment?.status))}
                                 <Autocomplete
                                     style={{ width: 170, }}
-                                    disabled={props.editEnrolment?.payments?.type === 'Online'}
+                                    disabled={updatingEnrolment?.type === 'Online'}
                                     options={enrolmentStatus || []}
                                     getOptionLabel={(option) => option.value || ''}
-                                    value={enrolmentStatus.find(enrol => enrol.key === props.editEnrolment?.payments?.status) || ''}
+                                    value={enrolmentStatus.find(enrol => enrol.value === updatingEnrolment?.status) || ''}
                                     isOptionEqualToValue={(option, value) => option?.value === value}
-                                    onChange={(status) => { props.editEnrolment.payments.status = enrolmentStatus[status.target?.dataset?.optionIndex]?.value }}
+                                    onChange={(status) => { 
+                                        console.log(enrolmentStatus[status.target?.dataset?.optionIndex]?.value)
+                                        setUpdatingEnrolment({...updatingEnrolment, status : enrolmentStatus[status.target?.dataset?.optionIndex]?.value})
+                                     }}
                                     id="statusAutoComplete"
                                     renderInput={(params) => (
                                         <TextField
@@ -153,7 +162,7 @@ const EnrolmentEditModel = (props) => {
                                         readOnly: true,
                                         disableUnderline: true,
                                     }}
-                                    value={props.editEnrolment?.payments?.originalAmount?.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") || ''}
+                                    value={updatingEnrolment?.originalAmount?.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") || ''}
                                     id="phone1"
                                     onChange={(name) => { }}
                                     variant="standard"
@@ -168,7 +177,7 @@ const EnrolmentEditModel = (props) => {
                                         readOnly: true,
                                         disableUnderline: true,
                                     }}
-                                    value={monthsObject.find(month => month.key === new Date(props.editEnrolment?.payments?.date)?.getMonth())?.value || ''}
+                                    value={monthsObject.find(month => month.key === new Date(updatingEnrolment?.date)?.getMonth())?.value || ''}
                                     id="phone1"
                                     onChange={(name) => { }}
                                     variant="standard"

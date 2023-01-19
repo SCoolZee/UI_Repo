@@ -1,16 +1,14 @@
 /* eslint-disable react/jsx-pascal-case */
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { Box, Card, Typography, TextField } from '@material-ui/core';
 import { useHistory } from 'react-router-dom';
 import { Autocomplete } from '@mui/material';
 import Grid from '@mui/material/Grid';
-import { DataGrid, GridCellEditStopReasons } from '@mui/x-data-grid';
+import { DataGrid, GridCellEditStopReasons, gridClasses } from '@mui/x-data-grid';
 import TextareaAutosize from '@mui/material/TextareaAutosize';
 import Button from '@mui/material/Button';
 import { useStyles } from './AssessmentDetailStyle';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import toast, { Toaster } from "react-hot-toast";
 import axios from 'axios';
 import { OBJECT } from '../../../constants/ObjectNames/documentObjNames';
 import Loading from '../../../components/loading/Loading';
@@ -18,7 +16,9 @@ import Custom_Button from '../../../components/reusableElements/Custom_Button';
 import { formateTime } from '../../../components/commonController/commonController';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import ArrowDropUpIcon from '@mui/icons-material/ArrowDropUp';
-import { assessmentColumns } from './AssessmentTable';
+import { dateParser, discardPastDateTime, resultsButton } from './AssessmentTable';
+import AssessmentDetailsAction from './AssessmentDetailsAction';
+import { grey } from '@mui/material/colors';
 
 function AssessmentDetails(params) {
     const history = useHistory();
@@ -33,13 +33,33 @@ function AssessmentDetails(params) {
     const [invalidList, setInvalidList] = React.useState([]);
     const [expanded, setExpanded] = React.useState('');
     const [allFacultyList, setAllFacultyList] = React.useState([]);
+    const [pageSize, setPageSize] = React.useState(5);
+    const [rowId, setRowId] = React.useState(null);
+
+
+
+    const actionButtons = (params) => {
+        return <AssessmentDetailsAction {...{ params,rowId, setRowId }} />
+    }
+
+    const assessmentColumns = [
+        { field: 'subject', headerName: 'Subject', width: 370, editable: false },
+        { field: 'dateTime', type: 'dateTime', width: 270, headerName: 'Date/Time', editable: true, valueParser: dateParser, preProcessEditCellProps: discardPastDateTime },
+        { field: 'action', type: 'actions', headerName: 'Action', width: 150, renderCell: actionButtons },
+        { field: 'results', type: 'button', headerName: 'Results', width: 340, editable: false, renderCell: resultsButton },
+    ];
 
     useEffect(() => {
         getFacultyList()
         getAssessmentDetail(params.match.params.id)
     }, [])
 
+    useEffect(() => {
+        console.log(assessmentDetails)
+    }, [assessmentDetails])
+
     const getAssessmentDetail = async (assessmentId) => {
+        console.log('get assessment details')
         setisPageLoading(true)
         unmounted = false;
         const source = axios.CancelToken.source();
@@ -76,7 +96,7 @@ function AssessmentDetails(params) {
         setisPageLoading(true);
         unmounted = false;
         const source = axios.CancelToken.source();
-        await axios.get(`${process.env.REACT_APP_SERVER}/faculty-info/user`)
+        await axios.get(`${process.env.REACT_APP_SERVER}/faculty-info/${OBJECT.USER}`)
             .then((response) => {
                 console.log(response.data);
                 setAllFacultyList(response.data)
@@ -103,13 +123,12 @@ function AssessmentDetails(params) {
 
     function formatTime(timeInput) {
         let intValidNum = timeInput.target.value;
-        setAssessmentDetails({ ...assessmentDetails, duration: intValidNum })
         console.log(intValidNum)
-        if (intValidNum < 24 && intValidNum.length == 2) {
+        if (intValidNum < 24 && intValidNum.length === 2) {
             timeInput.target.value = timeInput.target.value + ":";
             return false;
         }
-        if (intValidNum == 24 && intValidNum.length == 2) {
+        if (intValidNum === 24 && intValidNum.length === 2) {
             timeInput.target.value = timeInput.target.value.length - 2 + "0:";
             return false;
         }
@@ -120,6 +139,7 @@ function AssessmentDetails(params) {
         if (intValidNum.length > 5) {
             timeInput.target.value = timeInput.target.value?.slice(0, -1)
         }
+        setAssessmentDetails({ ...assessmentDetails, duration: intValidNum })
 
     }
 
@@ -133,23 +153,49 @@ function AssessmentDetails(params) {
         return editorsList?.flat();
     }
 
-    const handleRowEditCommit = React.useCallback(
-        (params) => {
-            updateExamDates(params)
-        },
-        []
-    );
-
-    const updateExamDates = (editedData) => {
-        console.log(editedData) 
-        const { id, field, value } = editedData;
-        let tempAssessment = { ...assessmentDetails }
-        console.log(id)
-        console.log(tempAssessment)
-        let examToEditList = tempAssessment.exams?.map(exam => {return exam.details.find(detail => detail.subject._id === id)});
-        console.log(examToEditList);
-        let examToEdit = examToEditList?.find(exam => exam.subject?.Id?.toString() === id?.toString());
-        console.log(examToEdit)
+    const handleSave = async () => {
+        //assessmentDetails
+        if(!isEditMode){ 
+            setIsEditMode(true) 
+        }
+        else{
+        unmounted = false;
+        setisPageLoading(true)
+        const source = axios.CancelToken.source();
+        await axios.patch(`${process.env.REACT_APP_SERVER}/update-assessment-deatils/${OBJECT.ASSESSMENT}`, {
+            updatedAssessmentDetails: assessmentDetails
+        })
+            .then((response) => {
+                console.log(response)
+                if (response.status === 200) {
+                    toast.success("Record Saved.")
+                     setIsEditMode(false);
+                }
+            })
+            .catch((error) => {
+                if (!unmounted) {
+                    if (error.request.status === 403) {
+                        localStorage.removeItem('userDetail');
+                        localStorage.removeItem('userToken');
+                        localStorage.removeItem('activeSubscription');
+                        history.replace('/login');
+                        history.go(0);
+                    }
+                    else {
+                        toast.success("woops!! Failed to save the record.")
+                        console.log(error.request)
+                        //toast.error(error.request.error)
+                    }
+                }
+            })
+            .finally(() => {
+                setisPageLoading(false);
+                return function () {
+                    unmounted = true;
+                    source.cancel("Cancelling in cleanup");
+                };
+            });
+        }
     }
 
     if (isPageLoading) {
@@ -165,7 +211,7 @@ function AssessmentDetails(params) {
                 <Box component="span" className={classes.hideButtons}>
                     <Grid container spacing={5}>
                         <Grid xs={6} md={6} justifyContent='flex-end' style={{ maxWidth: '46%', paddingTop: 10, marginBottom: '1.5%' }} className={classes.gridElement}>
-                            <Custom_Button variant='contained' size="medium" style={{ marginRight: 3 }} color='inherit' onClick={() => { isEditMode ? setIsEditMode(false) : setIsEditMode(true) }} label={isEditMode ? 'Save' : 'Edit'} accessGranted={assessmentObjPermission.edit} />
+                            <Custom_Button variant='contained' size="medium" style={{ marginRight: 3 }} color='inherit' onClick={() => { handleSave() }} label={isEditMode ? 'Save' : 'Edit'} accessGranted={assessmentObjPermission.edit} />
                             <Custom_Button variant='contained' size="medium" style={{ marginLeft: 3 }} color='inherit' disabled={!isEditMode} onClick={() => {
                                 setIsEditMode(false)
                                 setAssessmentDetails(tempAssessmentDetails)
@@ -346,25 +392,28 @@ function AssessmentDetails(params) {
                                 <div style={{ height: 300, width: '100%', overflow: 'hidden' }}
                                     className={classes.tableHead}>
                                     <DataGrid
-                                        rows={exam.details?.map(detail => { return { id: detail.subject?._id, subject: detail.subject?.name, dateTime: new Date(detail.dateTime)?.toDateString() + ', ' + formateTime(new Date(detail.dateTime))?.strTime, actions: 'actions', resultEditors: handleResultEditorsList(exam.class._id, detail.subject?._id) } })}
+                                        rows={exam.details?.map(detail => { return { id: detail.subject?._id, subject: detail.subject?.name, dateTime: new Date(detail.dateTime)?.toDateString() + ', ' + formateTime(new Date(detail.dateTime))?.strTime, results: 'results',classId : exam.class._id, assessmentId : assessmentDetails._id,examId : exam._id, detailsId: detail._id, subjectId : detail.subject?._id, resultEditors: handleResultEditorsList(exam.class._id, detail.subject?._id) } })}
                                         columns={assessmentColumns}
-                                        isCellEditable={(params) => { return (params.row?.resultEditors?.includes(JSON.parse(localStorage.getItem('userDetail'))?._id) && isEditMode) ? false : true }}
-                                        experimentalFeatures={{ newEditingApi: false }}
-                                        onCellEditCommit={handleRowEditCommit}
-                                        // onCellEditStop={(params, event) => {
-                                        //     if (GridCellEditStopReasons.cellFocusOut === "cellFocusOut") {
-                                        //         console.log(params)
-                                        //         console.log(event)
-                                        //         let updatedSubject =  { ...exam.details?.find(detail => detail.subject?._id?.toString() === params.id?.toString())};
-                                        //         console.log(updatedSubject);
-                                        //         console.log(new Date(params.formattedValue).toISOString())
-                                        //         console.log(params)
-                                        //         updatedSubject.dateTime = new Date(params.formattedValue).toISOString();
-                                        //         //let updatedExam = exam.details.filter(detail => detail.subject?._id?.toString() !== params.id?.toString());
-                                        //         //updatedExam.push(updatedSubject);
-                                        //         console.log(updatedSubject);
-                                        //     }
-                                        // }}
+                                        getupdatedRow={row => row.id}
+                                        rowsPerPageOptions={[5, 10, 15]}
+                                        pageSize={pageSize}
+                                        onPageSizeChange={(newPageSize) => { setPageSize(newPageSize) }}
+                                        getRowSpacing={params => ({
+                                            top: params.isFirstVisible ? 0 : 5,
+                                            bottom: params.isLastVisible ? 0 : 5
+                                        })}
+                                        sx={{
+                                            '& .MuiDataGrid-cell:focus': {
+                                                outline: 'none'
+                                            },
+                                            [`& .${gridClasses.row}`]: {
+                                                bgcolor: grey[100]
+                                            }
+                                        }}
+                                        isCellEditable={(params) => {
+                                            return (params.row?.resultEditors?.includes(JSON.parse(localStorage.getItem('userDetail'))?._id) || assessmentDetails.owner?._id?.toString() === JSON.parse(localStorage.getItem('userDetail'))?._id?.toString()) ? true : false
+                                        }}
+                                        onCellEditCommit={params => setRowId(params.id)}
                                     />
                                 </div>
                             </Card>
@@ -373,6 +422,7 @@ function AssessmentDetails(params) {
                 })
 
                 }
+                <Toaster />
             </React.Fragment>
         )
     }
