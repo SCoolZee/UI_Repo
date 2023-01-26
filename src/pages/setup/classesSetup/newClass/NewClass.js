@@ -57,6 +57,7 @@ const NewClass = (params) => {
   const [subjSessionsPerWeek, setSubjSessionsPerWeek] = React.useState([]);
   const [leadInstructor, setLeadInstructor] = React.useState([]);
   const [feeStructureList, setFeeStructureList] = React.useState([]);
+  const [feeStructureObjPermission, setFeeStructureObjPermission] = React.useState({});
   const [newClassDetails, setNewClassDetails] = React.useState({
     name: '',
     sections: ['A'],
@@ -70,6 +71,7 @@ const NewClass = (params) => {
     getAllSubjects();
     getFacultyList();
     getAllFeeStructurs();
+    getAllFeeStructureAccess()
   }, []);
 
   useEffect(() => {
@@ -92,6 +94,35 @@ const NewClass = (params) => {
     }, 0);
   }, [leadInstructor])
 
+  const getAllFeeStructureAccess = async () => {
+    unmounted = false;
+    setisPageLoading(true);
+    const source = axios.CancelToken.source();
+    await axios.get(`${process.env.REACT_APP_SERVER}/fees-structure-info/fee-structure`)
+      .then((response) => {
+        console.log(response.data?.feeStructureList);
+        setFeeStructureObjPermission(response.data?.accessDefination)
+
+      })
+      .catch((error) => {
+        if (!unmounted) {
+          if (error.request.status === 403) {
+            localStorage.removeItem('userDetail');
+            localStorage.removeItem('userToken');
+            localStorage.removeItem('activeSubscription');
+            history.replace('/login');
+            history.go(0);
+          }
+        }
+      })
+      .finally(() => {
+        setisPageLoading(false);
+        return function () {
+          unmounted = true;
+          source.cancel("Cancelling in cleanup");
+        };
+      });
+  }
 
   const getAllFeeStructurs = async () => {
     unmounted = false;
@@ -160,6 +191,7 @@ const NewClass = (params) => {
     const source = axios.CancelToken.source();
     await axios.get(`${process.env.REACT_APP_SERVER}/faculty-info/user`)
       .then((response) => {
+        console.log(allFacultyList)
         setAllFacultyList(response.data)
       })
       .catch((error) => {
@@ -386,6 +418,7 @@ const NewClass = (params) => {
   }
 
   const handleLeadInstructor = (section, leadInstructorIndex) => {
+    console.log(allFacultyList,leadInstructorIndex);
     let tempLeadInstructor = leadInstructor;
     tempLeadInstructor = tempLeadInstructor.filter(currSection => currSection.section !== section);
     tempLeadInstructor.push({ section, Id: allFacultyList[leadInstructorIndex]?._id || '' })
@@ -459,12 +492,12 @@ const NewClass = (params) => {
       toast.error(`Lead instructor is required for all sections`);
       return isValid
     }
-    newClassDetails.sections.forEach(section => {
-      if (newClassDetails.students.filter(student => student.section === section)?.length === 0) {
-        toast.error(`Students are not added to ${section} section`);
-        return isValid
-      }
-    });
+    // newClassDetails.sections.forEach(section => {
+    //   if (newClassDetails.students.filter(student => student.section === section)?.length === 0) {
+    //     toast.error(`Students are not added to ${section} section`);
+    //     return isValid
+    //   }
+    // });
 
     if (selectedSubjects.length === 0) {
       toast.error(`Subjects are required for a class`);
@@ -604,7 +637,7 @@ const NewClass = (params) => {
                         />)}
                     />}
                     <Box style={{ marginLeft: 20 }}>
-                      <Button onClick={() => { history.push(`/setup/add-fee`) }} style={{ backgroundColor: '#101F33', color: 'white' }}>Add Fee</Button>
+                      <Button onClick={() => { history.push(`/setup/add-fee`,{feeStructureObjPermission}) }} style={{ backgroundColor: '#101F33', color: 'white' }}>Add Fee</Button>
                     </Box>
                   </Box>
                   <Box xs={12} md={6} className={classes.gridElement}>
@@ -893,7 +926,7 @@ const NewClass = (params) => {
                                         value={allFacultyList.find(faculty => faculty._id === newClassDetails.leadInstructor?.find(instr => instr.section === section)?.Id) ?
                                           allFacultyList.find(faculty => faculty._id === newClassDetails.leadInstructor?.find(instr => instr.section === section)?.Id) : null}
                                         isOptionEqualToValue={(option, value) => option?._id === value?._id}
-                                        onChange={(event) => { handleLeadInstructor(section, event.target.value) }}
+                                        onChange={(event) => { handleLeadInstructor(section, event.target.dataset?.optionIndex) }}
                                         id="disable-close-on-select"
                                         renderInput={(params) => (
                                           <TextField
@@ -922,7 +955,7 @@ const NewClass = (params) => {
                                                         value={allFacultyList.find(faculty => faculty._id === subjInstructorDetails.find(instr => instr.section === section && instr.subjectId === subject._id)?.instructorId) ?
                                                           allFacultyList.find(faculty => faculty._id === subjInstructorDetails.find(instr => instr.section === section && instr.subjectId === subject._id)?.instructorId) : null}
                                                         isOptionEqualToValue={(option, value) => option?._id === value?._id}
-                                                        onChange={(event) => { handleInstructor(subject._id, section, event.target.value) }}
+                                                        onChange={(event) => { handleInstructor(subject._id, section, event.target.dataset?.optionIndex) }}
                                                         id="disable-close-on-select"
                                                         renderInput={(params) => (
                                                           <TextField

@@ -206,8 +206,7 @@ const NewFeeStructure = (params) => {
     else {
         return (
             <React.Fragment>
-                {JSON.parse(localStorage.getItem('userDetail'))?.profile?.name === 'Admin' ?
-                    (<Box component="span" className={classes.hideButtons}>
+                    <Box component="span" className={classes.hideButtons}>
                         <Grid justifyContent='space-between' container spacing={1}>
                             <Grid item xs={6} md={6} style={{ paddingRight: 4, justifyContent: 'flex-end' }} className={classes.gridElement}>
                                 <Custom_Button variant='contained' size="medium" onClick={() => { handleRecordSave(false) }} label={'Save'} accessGranted = {feeStructureObjPermission?.create}/>
@@ -216,8 +215,7 @@ const NewFeeStructure = (params) => {
                                 <Custom_Button variant='contained' size="medium" onClick={() => { handleRecordSave(true) }} label={'Save and New'} accessGranted = {feeStructureObjPermission?.create}/>
                             </Grid>
                         </Grid>
-                    </Box>) : <span></span>
-                }
+                    </Box>
 
                 <Typography className={classes.header}>
                     Fee Structure :

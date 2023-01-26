@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { loginContext } from './components/context/Context'
+import {breadcrumbsContext } from './components/context/Context'
 import { BrowserRouter as Router } from 'react-router-dom';
 import AppDrawer from './components/drawer/AppDrawer';
 import AuthRouter from './components/routers/AuthRouter';
@@ -8,6 +9,7 @@ import AuthRouter from './components/routers/AuthRouter';
 function App() {
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [breadcrumbsList, setBreadcrumbsList] = React.useState([]);
 
   axios.interceptors.request.use(request => {
     const isLoggedIn = localStorage.getItem('userToken');
@@ -29,11 +31,13 @@ function App() {
   if (isLoggedIn) {
     return (
       <loginContext.Provider value={[isLoggedIn, setIsLoggedIn]}>
+        <breadcrumbsContext.Provider value={[breadcrumbsList,setBreadcrumbsList]}>
         <Router>
           <div style={{ display: 'flex' }}>
             <AppDrawer />
           </div>
         </Router>
+        </breadcrumbsContext.Provider>
       </loginContext.Provider>
     );
   }

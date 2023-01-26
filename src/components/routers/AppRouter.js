@@ -4,7 +4,6 @@ import axios from 'axios';
 import ProtectedRouts from './ProtectedRoutes';
 import { useHistory } from 'react-router-dom';
 import Loading from '../loading/Loading';
-import { NavigationBarItems } from '../../constants/NavigationBarItems';
 import { AccessDefinition } from '../../constants/AccessDefinition/AccessDefinition';
 
 const Home = React.lazy(() => import('../../pages/home/Home'));
@@ -32,31 +31,6 @@ const AppRouter = () => {
   const history = useHistory();
   const currentUserProfile = JSON.parse(localStorage.getItem('userDetail'))?.profile?.name;
   const isSubscribed = JSON.parse(localStorage.getItem('activeSubscription'));
-  const [availableRouts, setAvailableRouts ] = React.useState([]);
-
-  let unmounted = false;
-
-  useEffect(() => {
-    //getAccessDefination();
-  },[])
-
-  // const getAccessDefination = async() => {
-  //   //access-defination-info
-  //   const source = axios.CancelToken.source();
-  //   await axios.get(`${process.env.REACT_APP_SERVER}/access-defination-info`)
-  //   .then((response) => { 
-  //     console.log(response.data[0] === '/home')
-  //     console.log(response.data.findIndex(ra => ra.route === '/home'))
-  //     setAvailableRouts(response.data);
-  //   })
-  //   .catch((error) => {if (!unmounted) {console.log(error)}})
-  //   .finally(() => {
-  //     return function () {
-  //         unmounted = true;
-  //         source.cancel("Cancelling in cleanup");
-  //     };
-  // });
-  // }
 
   return (
     <div>

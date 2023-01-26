@@ -98,7 +98,7 @@ const ProfileAudience = (props) => {
         setSelectedUsers([...usersList.map(user => { return { userId: user._id, userEmail: user.email, userPhone: user.phone1, userProfile: user.profile, userName: user.name } })]);
     }
 
-    const handleOnSubjectChecked = (subjectId) => {
+    const handleOnProfileChecked = (subjectId) => {
         if (checkedAllProfiles.includes(subjectId)) {
             setCheckedAllProfiles(checkedAllProfiles.filter(subId => subId !== subjectId));
         }
@@ -156,7 +156,7 @@ const ProfileAudience = (props) => {
                                 key={profile?._id}
                                 role="listitem"
                                 button
-                                onClick={() => { handleOnSubjectChecked(profile?._id) }}
+                                onClick={() => { handleOnProfileChecked(profile?._id) }}
                             >
                                 <ListItemIcon>
                                     <Checkbox

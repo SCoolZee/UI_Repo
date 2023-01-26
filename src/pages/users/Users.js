@@ -5,8 +5,11 @@ import toast, { Toaster } from "react-hot-toast";
 import exportFromJSON from 'export-from-json'
 import LockResetRoundedIcon from '@mui/icons-material/LockResetRounded';
 import FileUploadIcon from '@mui/icons-material/FileUpload';
-import FileUploadOutlinedIcon from '@mui/icons-material/FileUploadOutlined';
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Grid, Link, Switch } from '@material-ui/core';
+import Stack from '@mui/material/Stack';
+import NavigateNextIcon from '@mui/icons-material/NavigateNext';
+import Breadcrumbs from '@mui/material/Breadcrumbs';
+import Link from '@mui/material/Link';
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Grid, Switch, Typography } from '@material-ui/core';
 import LinearProgress from '@mui/material/LinearProgress';
 import Paper from '@mui/material/Paper';
 import Table from '@mui/material/Table';
@@ -18,9 +21,11 @@ import TablePagination from '@mui/material/TablePagination';
 import TableRow from '@mui/material/TableRow';
 import { columns } from '../../constants/UsersTableHeaders';
 import { StyledTableCell, useStyles } from './UsersStyle';
-import axios,{ post } from 'axios';
+import axios, { post } from 'axios';
 import Loading from '../../components/loading/Loading';
 import Custom_Button from '../../components/reusableElements/Custom_Button';
+import { NavigationBarItems } from '../../constants/NavigationBarItems';
+import { breadcrumbsContext } from '../../components/context/Context';
 
 const Users = () => {
   const classes = useStyles();
@@ -37,6 +42,7 @@ const Users = () => {
   const [userToReset, setUserToReset] = React.useState({});
   const [requestSent, setRequestSent] = React.useState(false);
   const [userObjPermission, setUserObjPermission] = React.useState({});
+  const [breadcrumbsList, setBreadcrumbsList] = React.useContext(breadcrumbsContext);
 
   const url = `${process.env.REACT_APP_SERVER}/upload-users/user`;
 
@@ -47,6 +53,19 @@ const Users = () => {
   }
 
   useEffect(() => {
+    setBreadcrumbsList([
+      <Link
+        underline="hover"
+        sx={{ display: 'flex', alignItems: 'center' }}
+        color="inherit"
+        href={NavigationBarItems.find(nav => nav.route === history.location.pathname)?.route}
+      >
+        <span style={{ margin: '5px 5px 0px 0px', fontSize: 'inherit' }} fontSize="inherit">
+          {NavigationBarItems.find(nav => nav.route === history.location.pathname)?.icon}
+        </span>
+        {NavigationBarItems.find(nav => nav.route === history.location.pathname)?.label}
+      </Link>,
+    ]);
     setAllUsers([]);
     getAllUsers();
   }, []);
@@ -155,14 +174,14 @@ const Users = () => {
     post(url, formData, config)
       .then((response) => {
         if (response.status === 200) {
-          if(response.data?.length > 0){
-          let failedData = [...response.data];
-          let fileName = 'Failed Records';
-          let exportType = exportFromJSON.types.xls
-          console.log(failedData);
-          exportFromJSON({ data: failedData, fileName, exportType }) 
+          if (response.data?.length > 0) {
+            let failedData = [...response.data];
+            let fileName = 'Failed Records';
+            let exportType = exportFromJSON.types.xls
+            console.log(failedData);
+            exportFromJSON({ data: failedData, fileName, exportType })
           }
-          else{
+          else {
             toast.success('All users inserted successfully')
           }
         }
@@ -248,16 +267,25 @@ const Users = () => {
   else {
     return (
       <React.Fragment>
+        <Stack spacing={2}>
+          <Breadcrumbs
+            separator={<NavigateNextIcon fontSize="small" />}
+            aria-label="breadcrumb"
+          >
+            {breadcrumbsList}
+          </Breadcrumbs>
+        </Stack>
+
         {JSON.parse(localStorage.getItem('userDetail')).profile?.name === 'Admin' ?
           (<Box component="span" className={classes.hideButtons}>
             <Grid container spacing={5}>
               <Grid xs={6} md={6} justifyContent='flex-end' className={classes.gridElement}>
                 {/* <Button variant='contained' size="medium" onClick={() => { history.push(`users/add-user`) }}>New</Button> */}
-                <Custom_Button variant='contained' size="medium" label={"New"} accessGranted={userObjPermission.create} onClick={() => { history.push(`users/add-user`,{userObjPermission}) }}/>
+                <Custom_Button variant='contained' size="medium" label={"New"} accessGranted={userObjPermission.create} onClick={() => { history.push(`users/add-user`, { userObjPermission }) }} />
               </Grid>
               <Grid xs={6} md={6} justifyContent='flex-end' className={classes.gridElement}>
-              <Button style={{backgroundColor: '#101F33'}} variant='text' size="medium" onClick={() => { document.getElementById('file-upoad').click()}}><FileUploadIcon style={{color: 'white'}}/></Button>
-              <input type='file' accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" onChange={(event) => { handleUploadAttachment(event.target.files[0]) }} name='file' id='file-upoad' style={{ display: 'none' }} />
+                <Button style={{ backgroundColor: '#101F33' }} variant='text' size="medium" onClick={() => { document.getElementById('file-upoad').click() }}><FileUploadIcon style={{ color: 'white' }} /></Button>
+                <input type='file' accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" onChange={(event) => { handleUploadAttachment(event.target.files[0]) }} name='file' id='file-upoad' style={{ display: 'none' }} />
               </Grid>
             </Grid>
           </Box>) : <span></span>
@@ -295,11 +323,11 @@ const Users = () => {
                                   ? <Switch onChange={() => { handleStatusChange(row.id) }} checked={value} />
                                   : column.id === 'reset'
                                     ?
-                                    <Button disabled = {row.profile !== 'Faculty' && row.profile !== 'Admin'} onClick={() => { handleInitiatePasswordReset(row) }}>
+                                    <Button disabled={row.profile !== 'Faculty' && row.profile !== 'Admin'} onClick={() => { handleInitiatePasswordReset(row) }}>
                                       <LockResetRoundedIcon />
                                     </Button>
                                     : column.id === 'name'
-                                      ? <Link onClick={() => { history.push(`users/user-details/${row.id}`) }} style={{cursor:'pointer', color:'inherit'}} underline="always" >{value}</Link> : value}
+                                      ? <Link onClick={() => { history.push(`users/user-details/${row.id}`) }} style={{ cursor: 'pointer', color: 'inherit' }} underline="always" >{value}</Link> : value}
                             </TableCell>
                           );
                         })}

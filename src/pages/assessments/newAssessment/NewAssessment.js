@@ -1,7 +1,8 @@
 /* eslint-disable react/jsx-pascal-case */
 import React, { useContext, useEffect } from 'react'
 import WarningRoundedIcon from '@mui/icons-material/WarningRounded';
-import { Box, Container, Button, Divider } from '@material-ui/core';
+import Checkbox from '@mui/material/Checkbox';
+import { Box, Container, Button, Divider, List, ListItem, ListItemIcon, ListItemText } from '@material-ui/core';
 import TextField from '@mui/material/TextField';
 import Grid from '@mui/material/Grid';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -26,6 +27,7 @@ import { eventNotificationMode } from '../../../constants/EventNotificationMode'
 import { AccessDefinition } from '../../../constants/AccessDefinition/AccessDefinition';
 import { loginContext } from '../../../components/context/Context';
 import Custom_Button from '../../../components/reusableElements/Custom_Button';
+import { scoringSystem } from '../../../constants/ScoriingSystemList';
 
 function NewAssessment(params) {
 
@@ -33,18 +35,19 @@ function NewAssessment(params) {
   const history = useHistory();
 
   let unmounted = false;
-  const currentUserProfile =JSON.parse(localStorage.getItem('userDetail'))?.profile?.name;
+  const currentUserProfile = JSON.parse(localStorage.getItem('userDetail'))?.profile?.name;
   const accessDfn = AccessDefinition.find(definition => definition.route === window.location.pathname);
 
   const assessmentObjPermission = params.location.state.assessmentObjPermission;
 
-  useEffect(() => {
-    console.log(assessmentObjPermission)
-    getAllClasses();
-    getFacultyList();
-  }, []);
 
 
+
+  const [allScoringSystemList, setAllScoringSystemList] = React.useState([]);
+  const [unselectedScoringSystem, setUnselectedScoringSystem] = React.useState([]);
+  const [selectedScoringSystem, setSelectedScoringSystem] = React.useState([]);
+  const [checkedUnselectedScoringSystem, setCheckedUnselectedScoringSystem] = React.useState([]);
+  const [checkedSelectedScoringSystem, setCheckedSelectedScoringSystem] = React.useState([]);
   const [invalidList, setInvalidList] = React.useState([]);
   const [subjectList, setSubjectList] = React.useState([]);
   const [classlist, setClassList] = React.useState([]);
@@ -59,8 +62,22 @@ function NewAssessment(params) {
   const [isLoggedIn, setIsLoggedIn] = useContext(loginContext);
 
   useEffect(() => {
-    console.log(duration)
-  }, [duration]);
+    console.log(assessmentObjPermission)
+    setAllScoringSystemList(scoringSystem);
+    getAllClasses();
+    getFacultyList();
+  }, []);
+
+  useEffect(() => {
+    setUnselectedScoringSystem(allScoringSystemList)
+  }, [allScoringSystemList])
+
+  useEffect(() => {
+    setCheckedSelectedScoringSystem([]);
+    setCheckedUnselectedScoringSystem([]);
+  },[selectedScoringSystem,unselectedScoringSystem])
+
+  useEffect(() => {console.log(selectedScoringSystem)},[selectedScoringSystem])
 
 
   const getAllClasses = async () => {
@@ -85,7 +102,7 @@ function NewAssessment(params) {
           else {
 
             response.data.forEach(classData => {
-              subjectList.push(...classData.divisions?.map(div => div.courses?.map(course => {return course.subject})));
+              subjectList.push(...classData.divisions?.map(div => div.courses?.map(course => { return course.subject })));
               classSubList.push({ id: classData._id, name: classData.name, subjects: [...classData.divisions[0]?.courses?.map(course => { return course.subject?._id })] })
             });
 
@@ -184,16 +201,20 @@ function NewAssessment(params) {
       tempInvalidList.push('duration');
       isValid = false
     }
-    if(JSON.stringify(assessmentNotificationMode) === JSON.stringify({})){
+    if (JSON.stringify(assessmentNotificationMode) === JSON.stringify({})) {
       tempInvalidList.push('notificationMode')
       isValid = false
     }
-    if(JSON.stringify(assessmentOwner) === JSON.stringify({})){
+    if (JSON.stringify(assessmentOwner) === JSON.stringify({})) {
       tempInvalidList.push('owner')
       isValid = false
     }
     if (assessmentData.length === 0) {
       toast.error('No assessment scheduled.');
+      isValid = false
+    }
+    if(selectedScoringSystem?.length === 0){
+      tempInvalidList.push('scoringSystem')
       isValid = false
     }
     if (!isValid) {
@@ -296,6 +317,96 @@ function NewAssessment(params) {
     }
 
   }
+
+  const handleSelectAllScoringSys = () => {
+    setSelectedScoringSystem(allScoringSystemList);
+    setCheckedSelectedScoringSystem([...checkedSelectedScoringSystem, checkedUnselectedScoringSystem]);
+    setUnselectedScoringSystem([]);
+    setCheckedUnselectedScoringSystem([]);
+  }
+
+  const handleSelectChecked = () => {
+    console.log(checkedUnselectedScoringSystem)
+    var tempUnselected = [...unselectedScoringSystem];
+    setSelectedScoringSystem([...selectedScoringSystem,...checkedUnselectedScoringSystem]);
+    checkedUnselectedScoringSystem.forEach(checkedUnselected => {
+      tempUnselected.splice(tempUnselected.findIndex(scoreSys => scoreSys.value === checkedUnselected.value),1);
+    });
+    setUnselectedScoringSystem(tempUnselected);
+  }
+
+  const handleDeselectChecked = () => {
+    console.log(checkedSelectedScoringSystem)
+    var tempUnselected = [...selectedScoringSystem];
+    setUnselectedScoringSystem([...unselectedScoringSystem,...checkedSelectedScoringSystem]);
+    checkedSelectedScoringSystem.forEach(checkedSelected => {
+      tempUnselected.splice(tempUnselected.findIndex(scoreSys => scoreSys.value === checkedSelected.value),1);
+    });
+    setSelectedScoringSystem(tempUnselected);
+  }
+
+  const handleDeselectScoringSys = () => {
+    setSelectedScoringSystem([]);
+    setUnselectedScoringSystem(allScoringSystemList);
+    setCheckedSelectedScoringSystem([])
+  }
+
+    const handleOnScoringSysChecked = (scoringSystem) => {
+      console.log(checkedUnselectedScoringSystem)
+
+      if(unselectedScoringSystem.findIndex(scoringSys => scoringSys.value === scoringSystem.value) > -1){
+        if(checkedUnselectedScoringSystem.findIndex(scoringSys => scoringSys.value === scoringSystem.value) > -1){
+          setCheckedUnselectedScoringSystem(checkedUnselectedScoringSystem.splice(checkedUnselectedScoringSystem.findIndex(scoringSys => scoringSys.value === scoringSystem.value),1));
+        }
+        else{
+          setCheckedUnselectedScoringSystem([...checkedUnselectedScoringSystem,scoringSystem])
+        }
+      }
+      else{
+        console.log(checkedSelectedScoringSystem.findIndex(scoringSys => scoringSys.value === scoringSystem.value) > -1)
+        if(checkedSelectedScoringSystem.findIndex(scoringSys => scoringSys.value === scoringSystem.value) > -1){
+          setCheckedSelectedScoringSystem(checkedSelectedScoringSystem.splice(checkedSelectedScoringSystem.findIndex(scoringSys => scoringSys.value === scoringSystem.value),1));
+        }
+        else{
+          setCheckedSelectedScoringSystem([...checkedSelectedScoringSystem,scoringSystem])
+        }
+      }
+      
+  }
+
+  const customList = (items) => {
+    return (
+      <Paper style={{ minHeight: 175, maxHeight: 175, overflow: 'auto' }}>
+        <List dense component="div" role="list">
+          {items.map((scoreSys) => {
+            const labelId = `transfer-list-item-${scoreSys?.value}-label`;
+
+            return (
+              <ListItem
+                key={scoreSys?.value}
+                role="listitem"
+                button
+                onClick={() => { handleOnScoringSysChecked(scoreSys) }}
+              >
+                <ListItemIcon>
+                  <Checkbox
+                    checked={checkedSelectedScoringSystem.findIndex(scoringSys => scoringSys.value === scoreSys.value) > -1 || checkedUnselectedScoringSystem.findIndex(scoringSys => scoringSys.value === scoreSys.value) > -1}
+                    tabIndex={-1}
+                    disableRipple
+                    inputProps={{
+                      'aria-labelledby': labelId,
+                    }}
+                  />
+                </ListItemIcon>
+                <ListItemText id={labelId} primary={`${scoreSys?.label}`} />
+              </ListItem>
+            );
+          })}
+          <ListItem />
+        </List>
+      </Paper>)
+  }
+
   if (isPageLoading) {
     return (
       <Box style={{ top: '50%' }}>
@@ -306,13 +417,13 @@ function NewAssessment(params) {
   else {
     return (
       <React.Fragment>
-         <Box component="span" className={classes.hideButtons}>
+        <Box component="span" className={classes.hideButtons}>
           <Grid container spacing={5}>
             <Grid xs={6} md={6} justifyContent='flex-end' style={{ maxWidth: '46%', paddingTop: 10, marginBottom: '1.5%' }} className={classes.gridElement}>
-              <Custom_Button variant='contained' size="medium" style={{ marginRight: 3 }} color='inherit' onClick={dataValidation} label={'Publish'} accessGranted={assessmentObjPermission.create}/>
+              <Custom_Button variant='contained' size="medium" style={{ marginRight: 3 }} color='inherit' onClick={dataValidation} label={'Publish'} accessGranted={assessmentObjPermission.create} />
             </Grid>
             <Grid xs={6} md={6} justifyContent='flex-start' style={{ maxWidth: '46%', paddingTop: 10, marginBottom: '1.5%' }} className={classes.gridElement}>
-              <Custom_Button variant='contained' size="medium" color='error' style={{ marginRight: 3 }} onClick={() => { history.goBack() }} label={'Cancel'} accessGranted={assessmentObjPermission.create}/>
+              <Custom_Button variant='contained' size="medium" color='error' style={{ marginRight: 3 }} onClick={() => { history.goBack() }} label={'Cancel'} accessGranted={assessmentObjPermission.create} />
             </Grid>
           </Grid>
         </Box>
@@ -347,6 +458,68 @@ function NewAssessment(params) {
                   style={{ minWidth: '100%', maxWidth: '100%', minHeight: 143, height: 143 }}
                   value={assessmentInstruction.instruction || ''}
                 />
+              </Box>
+              <Box style={{ marginBottom: 20 }}>
+              <Typography className={classes.label}>Scoring System :</Typography>
+              {invalidList.includes('scoringSystem') && <Typography color='#d32f2f' style={{color: '#d32f2f',fontFamily:'Roboto,Helvetica,Arial,sans-serif', fontWeight: 400, fontSize: '0.75rem'}}>Please select at least 1 scoring system</Typography>}
+                <Grid container spacing={2}>
+                  <Grid item xs={5} style={{ paddingTop: 10 }}>
+                    <Typography style={{ backgroundColor: '#e9e9e9', color: 'black' }} className={classes.header}>
+                      All Scorings Systems :
+                    </Typography>
+                    {customList(unselectedScoringSystem)}
+                  </Grid>
+                  <Grid item xs={2} style={{ paddingTop: 50 }}>
+                    <Grid container direction="column" alignItems="center" style={{ paddingTop: '30px' }}>
+                      <Button
+                        sx={{ my: 0.5 }}
+                        variant="outlined"
+                        size="small"
+                        onClick={handleSelectAllScoringSys}
+                        disabled={unselectedScoringSystem.length === 0}
+                        aria-label="move all right"
+                      >
+                        ≫
+                      </Button>
+                      <Button
+                        sx={{ my: 0.5 }}
+                        variant="outlined"
+                        size="small"
+                        onClick={handleSelectChecked}
+                        disabled={checkedUnselectedScoringSystem.length === 0}
+                        aria-label="move selected right"
+                      >
+                        &gt;
+                      </Button>
+                      <Button
+                        sx={{ my: 0.5 }}
+                        variant="outlined"
+                        size="small"
+                        onClick={handleDeselectChecked}
+                        disabled={checkedSelectedScoringSystem.length === 0}
+                        aria-label="move selected left"
+                      >
+                        &lt;
+                      </Button>
+                      <Button
+                        sx={{ my: 0.5 }}
+                        variant="outlined"
+                        size="small"
+                        onClick={handleDeselectScoringSys}
+                        disabled={selectedScoringSystem.length === 0}
+                        aria-label="move all left"
+                      >
+                        ≪
+                      </Button>
+                    </Grid>
+                  </Grid>
+                  <Grid item xs={5} style={{ paddingTop: 10 }}>
+                    <Typography style={{ backgroundColor: '#e9e9e9', color: 'black' }} className={classes.header}>
+                      Selected Scoring Systems :
+                    </Typography>
+                    {customList(selectedScoringSystem)}
+                  </Grid>
+                </Grid>
               </Box>
             </Grid>
             <Grid item xs={6}>
@@ -415,6 +588,8 @@ function NewAssessment(params) {
                     />)}
                 />
               </Box>
+              {/* scoringSystem */}
+
             </Grid>
           </Grid>
 
