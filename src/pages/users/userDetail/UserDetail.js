@@ -57,7 +57,7 @@ const UserDetail = (props) => {
                     color="inherit"
                     href="#"
                 >
-                    Details
+                    User Details
                 </Link>,
             ])
         }

@@ -35,11 +35,12 @@ const Setup = () => {
         color="inherit"
         href={NavigationBarItems.find(nav => nav.route === history.location.pathname)?.route}
       >
-        <span style={{ margin: '5px 5px 0px 0px', fontSize: 'inherit' }} fontSize="inherit">
+        <span style={{ display: 'flex', fontSize: 'inherit' }} fontSize="inherit">
+          <span style={{marginRight: 5}}>
           {NavigationBarItems.find(nav => nav.route === history.location.pathname)?.icon}
           </span>
-        {NavigationBarItems.find(nav => nav.route === history.location.pathname)?.label}
-        
+          {NavigationBarItems.find(nav => nav.route === history.location.pathname)?.label}
+        </span>
       </Link>,
     ]);
   }, [])

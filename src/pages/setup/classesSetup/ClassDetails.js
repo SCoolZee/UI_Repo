@@ -37,7 +37,7 @@ const ClassDetails = (props) => {
 
   let unmounted = false;
 
-  const currentUserProfile =JSON.parse(localStorage.getItem('userDetail'))?.profile?.name;
+  const currentUserProfile = JSON.parse(localStorage.getItem('userDetail'))?.profile?.name;
   const accessDfn = AccessDefinition.find(definition => definition.route === window.location.pathname);
 
   const [isEditMode, setIsEditMode] = useState(false);
@@ -265,18 +265,19 @@ const ClassDetails = (props) => {
   }
   else {
     return (
+
       <React.Fragment>
-          <Box component="span" className={classes.hideButtons}>
-            <Grid container spacing={1}>
-              <Grid item xs={6} md={6} justifyContent='flex-end' style={{ paddingRight: 4 }} className={classes.gridElement}>
-                <Custom_Button variant='contained' style={{ marginRight: 5 }} size="medium" onClick={() => { handleEditSave() }} label = {isEditMode ? 'Save' : 'Edit'} accessGranted={classObjPermission?.edit}/>
-              </Grid>
-              <Grid item xs={6} md={6} justifyContent='space-between' style={{ paddingLeft: 12 }} className={classes.gridElement}>
-                <Custom_Button variant='contained' size="medium" onClick={() => { handleEventSetup(true) }} label={'Add Event'} accessGranted={eventObjPermission?.create}/>
-                <Button variant='outlined' size="small" style={{ right: '18px' }} onClick={() => { }}>Timetable</Button>
-              </Grid>
+        <Box component="span" className={classes.hideButtons}>
+          <Grid container spacing={1}>
+            <Grid item xs={6} md={6} justifyContent='flex-end' style={{ paddingRight: 4 }} className={classes.gridElement}>
+              <Custom_Button variant='contained' style={{ marginRight: 5 }} size="medium" onClick={() => { handleEditSave() }} label={isEditMode ? 'Save' : 'Edit'} accessGranted={classObjPermission?.edit} />
             </Grid>
-          </Box>
+            <Grid item xs={6} md={6} justifyContent='space-between' style={{ paddingLeft: 12 }} className={classes.gridElement}>
+              <Custom_Button variant='contained' size="medium" onClick={() => { handleEventSetup(true) }} label={'Add Event'} accessGranted={eventObjPermission?.create} />
+              <Button variant='outlined' size="small" style={{ right: '18px' }} onClick={() => { }}>Timetable</Button>
+            </Grid>
+          </Grid>
+        </Box>
         <Box sx={{ flexGrow: 1 }}>
           <Grid container spacing={2} style={{ minHeight: 350 }}>
             <Grid item xs={6}>
@@ -420,7 +421,7 @@ const ClassDetails = (props) => {
                 Students :
               </Grid>
               <Grid item xs={6} md={6} justifyContent='flex-end' style={{ paddingLeft: 12 }} className={classes.gridElement}>
-              { accessDfn.editAccess?.includes(currentUserProfile) &&<Button variant='contained' size="small" style={{ right: '18px' }} onClick={() => { setAddStudentsEnable(!addStudentsEnable) }}>Add/Remove</Button>}
+                {accessDfn.editAccess?.includes(currentUserProfile) && <Button variant='contained' size="small" style={{ right: '18px' }} onClick={() => { setAddStudentsEnable(!addStudentsEnable) }}>Add/Remove</Button>}
               </Grid>
             </Grid>
           </Typography>
@@ -540,14 +541,14 @@ const ClassDetails = (props) => {
           <Box style={{ backgroundColor: 'white', height: '73vh' }} className={classes.modalDesign}>
             <ModifyStudents
               classId={queryParams.class}
-              divisionId = {queryParams.division}
-              classDetails = {classDetails}
-              handleCancel={(reload) => { 
-                if(reload){
+              divisionId={queryParams.division}
+              classDetails={classDetails}
+              handleCancel={(reload) => {
+                if (reload) {
                   window.location.reload(false);
                 }
-                setAddStudentsEnable(false) 
-                }} />
+                setAddStudentsEnable(false)
+              }} />
           </Box>
         </Modal>
       </React.Fragment>

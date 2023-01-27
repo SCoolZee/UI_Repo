@@ -3,6 +3,10 @@ import { Box, Button, Checkbox, Container, Dialog, DialogActions, DialogContent,
 import axios from 'axios';
 import toast, { Toaster } from "react-hot-toast";
 import React, { useEffect } from 'react'
+import Stack from '@mui/material/Stack';
+import NavigateNextIcon from '@mui/icons-material/NavigateNext';
+import Breadcrumbs from '@mui/material/Breadcrumbs';
+import { Link } from '@material-ui/core';
 import { useHistory } from 'react-router-dom'
 import { Input, Modal } from '@mui/material';
 import TablePagination from '@mui/material/TablePagination';
@@ -24,6 +28,7 @@ import { studentsColumns } from '../../../../constants/ClassStudentsTable';
 import { Autocomplete } from '@mui/material';
 import AddStudents from './AddStudents';
 import Custom_Button from '../../../../components/reusableElements/Custom_Button';
+import { breadcrumbsContext } from '../../../../components/context/Context';
 
 const NewClass = (params) => {
   const classes = useStyles();
@@ -58,6 +63,7 @@ const NewClass = (params) => {
   const [leadInstructor, setLeadInstructor] = React.useState([]);
   const [feeStructureList, setFeeStructureList] = React.useState([]);
   const [feeStructureObjPermission, setFeeStructureObjPermission] = React.useState({});
+  const [breadcrumbsList, setBreadcrumbsList] = React.useContext(breadcrumbsContext);
   const [newClassDetails, setNewClassDetails] = React.useState({
     name: '',
     sections: ['A'],
@@ -66,6 +72,22 @@ const NewClass = (params) => {
     subjects: [],
     students: []
   });
+
+  useEffect(() => {
+    if (JSON.stringify({}) !== JSON.stringify(window.location.pathname)) {
+      setBreadcrumbsList([
+        breadcrumbsList,
+        <Link
+          underline="hover"
+          style={{ display: 'flex', alignItems: 'center', marginBottom: 5 }}
+          color="inherit"
+          href="#"
+        >
+          New Class
+        </Link>,
+      ])
+    }
+  }, [window.location.pathname])
 
   useEffect(() => {
     getAllSubjects();
@@ -418,7 +440,7 @@ const NewClass = (params) => {
   }
 
   const handleLeadInstructor = (section, leadInstructorIndex) => {
-    console.log(allFacultyList,leadInstructorIndex);
+    console.log(allFacultyList, leadInstructorIndex);
     let tempLeadInstructor = leadInstructor;
     tempLeadInstructor = tempLeadInstructor.filter(currSection => currSection.section !== section);
     tempLeadInstructor.push({ section, Id: allFacultyList[leadInstructorIndex]?._id || '' })
@@ -529,35 +551,37 @@ const NewClass = (params) => {
       )
     }
     return (
-      <Paper style={{ minHeight: 305, maxHeight: 305, overflow: 'auto' }}>
-        <List dense component="div" role="list">
-          {items.map((subject) => {
-            const labelId = `transfer-list-item-${subject?._id}-label`;
+      <React.Fragment>
+        <Paper style={{ minHeight: 305, maxHeight: 305, overflow: 'auto' }}>
+          <List dense component="div" role="list">
+            {items.map((subject) => {
+              const labelId = `transfer-list-item-${subject?._id}-label`;
 
-            return (
-              <ListItem
-                key={subject?._id}
-                role="listitem"
-                button
-                onClick={() => { handleOnSubjectChecked(subject?._id) }}
-              >
-                <ListItemIcon>
-                  <Checkbox
-                    checked={checkedAllSubjects.includes(subject?._id) || checkedSelectedSubjects.includes(subject?._id)}
-                    tabIndex={-1}
-                    disableRipple
-                    inputProps={{
-                      'aria-labelledby': labelId,
-                    }}
-                  />
-                </ListItemIcon>
-                <ListItemText id={labelId} primary={`${subject?.name}`} />
-              </ListItem>
-            );
-          })}
-          <ListItem />
-        </List>
-      </Paper>)
+              return (
+                <ListItem
+                  key={subject?._id}
+                  role="listitem"
+                  button
+                  onClick={() => { handleOnSubjectChecked(subject?._id) }}
+                >
+                  <ListItemIcon>
+                    <Checkbox
+                      checked={checkedAllSubjects.includes(subject?._id) || checkedSelectedSubjects.includes(subject?._id)}
+                      tabIndex={-1}
+                      disableRipple
+                      inputProps={{
+                        'aria-labelledby': labelId,
+                      }}
+                    />
+                  </ListItemIcon>
+                  <ListItemText id={labelId} primary={`${subject?.name}`} />
+                </ListItem>
+              );
+            })}
+            <ListItem />
+          </List>
+        </Paper>
+      </React.Fragment>)
   }
 
   if (isPageLoadingFailed) {
@@ -577,6 +601,16 @@ const NewClass = (params) => {
   else {
     return (
       <React.Fragment>
+
+        <Stack spacing={2}>
+          <Breadcrumbs
+            separator={<NavigateNextIcon fontSize="small" style={{ marginBottom: 5 }} />}
+            aria-label="breadcrumb"
+          >
+            {breadcrumbsList}
+          </Breadcrumbs>
+        </Stack>
+
         {JSON.parse(localStorage.getItem('userDetail'))?.profile?.name === 'Admin' ?
           (<Box component="span" className={classes.hideButtons}>
             <Grid container spacing={1}>
@@ -637,7 +671,7 @@ const NewClass = (params) => {
                         />)}
                     />}
                     <Box style={{ marginLeft: 20 }}>
-                      <Button onClick={() => { history.push(`/setup/add-fee`,{feeStructureObjPermission}) }} style={{ backgroundColor: '#101F33', color: 'white' }}>Add Fee</Button>
+                      <Button onClick={() => { history.push(`/setup/add-fee`, { feeStructureObjPermission }) }} style={{ backgroundColor: '#101F33', color: 'white' }}>Add Fee</Button>
                     </Box>
                   </Box>
                   <Box xs={12} md={6} className={classes.gridElement}>
