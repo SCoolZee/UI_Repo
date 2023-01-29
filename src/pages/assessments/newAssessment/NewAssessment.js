@@ -249,6 +249,7 @@ function NewAssessment(params) {
       title: assessmentName.title,
       duration: duration,
       instruction: assessmentInstruction.instruction,
+      scoringSystem: selectedScoringSystem,
       notificationMode: assessmentNotificationMode.notificationMode,
       owner: assessmentOwner?.ownerId,
       exams: tempAssessmentData

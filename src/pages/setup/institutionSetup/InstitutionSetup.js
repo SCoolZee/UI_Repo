@@ -2,8 +2,10 @@
 import React, { useEffect, useState } from 'react'
 import toast, { Toaster } from "react-hot-toast";
 import axios from 'axios';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import Modal from '@mui/material/Modal';
-import { Box, Button, Container, Grid, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, TextField, Typography } from '@material-ui/core';
+import { Box, Button, Container, Grid, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, TextField, Typography, List, ListItem, ListItemIcon, ListItemText, Paper, Checkbox } from '@material-ui/core';
 import NumericInput from 'react-numeric-input';
 import Loading from '../../../components/loading/Loading';
 import { useStyles } from './InstitutionSetupStyle';
@@ -32,11 +34,53 @@ const InstitutionSetup = () => {
   const [invoice, setInvoice] = useState({});
   const [billingAddress, setBillingAddress] = useState({});
   const [updatingPlan, setUpdatingPlan] = useState({});
+  const [assessmentGrades, setAssessmentGrades] = React.useState([]);
+  const [checkedAvailableGrades, setCheckedAvailableGrades] = React.useState([]);
+  const [checkedSelectedGrades, setCheckedSelectedGrades] = React.useState([]);
+  const [availableGrades, setAvailableGrades] = React.useState([]);
+  const [selectedGrades, setSelectedGrades] = React.useState([]);
+  const [addNewGrades, setAddNewGrades] = React.useState(false);
+  const [deleteGrades, setDeteteGrade] = React.useState(false);
+  const [newGradeName, setNewGradeName] = React.useState('')
+
 
   useEffect(() => {
     getInstitutionInfo();
     getBillingDetails();
+    getAssessmentGrades()
   }, []);
+
+  useEffect(() => {
+    setAvailableGrades([...availableGrades, ...assessmentGrades.filter(grade => grade.active === false)])
+    setSelectedGrades([...availableGrades, ...assessmentGrades.filter(grade => grade.active === true)])
+  }, [assessmentGrades])
+
+  useEffect(() => {
+    let tempList = []
+
+    availableGrades.forEach(grade => {
+      if (grade.active) {
+        grade.active = false;
+        tempList.push(grade)
+      }
+    });
+
+    tempList?.length > 0 && setAvailableGrades(tempList);
+
+  }, [availableGrades])
+
+  useEffect(() => {
+    let tempList = []
+
+    selectedGrades.forEach(grade => {
+      if (!grade.active) {
+        grade.active = true;
+        tempList.push(grade)
+      }
+    });
+
+    tempList?.length > 0 && setSelectedGrades(tempList);
+  }, [selectedGrades])
 
   const getBillingDetails = async () => {
     unmounted = false;
@@ -48,8 +92,8 @@ const InstitutionSetup = () => {
         setSubscriptionInfo(response.data.billingDetails?.subscriptionInfo);
         setInvoice(response.data.billingDetails?.invoice);
         setBillingAddress(response.data.billingDetails?.billingAddress);
-        localStorage.setItem('subscribedProd',response.data?.billingDetails?.productInfo?.name);
-        localStorage.setItem('activeSubscription',(response.data?.billingDetails?.subscriptionInfo?.status === 'active') ? 'true' : 'false');
+        localStorage.setItem('subscribedProd', response.data?.billingDetails?.productInfo?.name);
+        localStorage.setItem('activeSubscription', (response.data?.billingDetails?.subscriptionInfo?.status === 'active') ? 'true' : 'false');
       })
       .catch((error) => {
         if (!unmounted) {
@@ -68,6 +112,35 @@ const InstitutionSetup = () => {
           source.cancel("Cancelling in cleanup");
         };
       });
+  }
+
+  const getAssessmentGrades = async () => {
+    unmounted = false;
+    const source = axios.CancelToken.source();
+    setAssessmentGrades([]);
+    await axios.get(`${process.env.REACT_APP_SERVER}/get-assessment-grades/${OBJECT.INSTITUTION_SETTINGS}`)
+      .then((assessmentGrades) => {
+        console.log(assessmentGrades.data)
+        setAssessmentGrades([...assessmentGrades?.data]);
+      })
+      .catch((error) => {
+        if (!unmounted) {
+          console.log(error)
+          if (error.request?.status === 403) {
+            localStorage.removeItem('userDetail');
+            localStorage.removeItem('userToken');
+            localStorage.removeItem('activeSubscription');
+            history.replace('/login');
+            history.go(0);
+          }
+        }
+      })
+      .finally(() => {
+        return function () {
+          unmounted = true;
+          source.cancel("Cancelling in cleanup");
+        };
+      })
   }
 
   const getInstitutionInfo = async () => {
@@ -223,10 +296,33 @@ const InstitutionSetup = () => {
     }
     if (isValid) {
       updateInstitutionDetails();
+      updateInstutionSettings();
     }
     else {
       setInvalidList(tempInvalidList);
     }
+  }
+
+  const updateInstutionSettings = async () => {
+    setisPageLoading(true);
+    unmounted = false;
+    const source = axios.CancelToken.source();
+    await axios.patch(`${process.env.REACT_APP_SERVER}/update-assessment-grades/${OBJECT.INSTITUTION_SETTINGS}`, {
+      selectedGrades
+    })
+      .then((instSetting) => {
+        getAssessmentGrades();
+      })
+      .catch((error) => {
+        console.log(error)
+      })
+      .finally(() => {
+        setisPageLoading(false);
+        return function () {
+          unmounted = true;
+          source.cancel("Cancelling in cleanup");
+        };
+      })
   }
 
   const updateInstitutionDetails = async () => {
@@ -326,10 +422,132 @@ const InstitutionSetup = () => {
   }
 
   const handleScbscriptionActions = (selectedplan) => {
-    console.log( selectedplan);
-      setUpdatingPlan(selectedplan);
-      setEnableChangePlanModal(true);
-      //setOpenSubscriptionModal(false)
+    console.log(selectedplan);
+    setUpdatingPlan(selectedplan);
+    setEnableChangePlanModal(true);
+    //setOpenSubscriptionModal(false)
+  }
+
+  const handleAddNewAssessmentGrade = async () => {
+    console.log(newGradeName)
+    unmounted = false;
+    const source = axios.CancelToken.source();
+    await axios.patch(`${process.env.REACT_APP_SERVER}/add-assessment-grades/${OBJECT.INSTITUTION_SETTINGS}`, {
+      assessmentGradeName: newGradeName
+    })
+      .then((response) => {
+        console.log(response)
+        setAddNewGrades(false)
+        setNewGradeName('')
+        getAssessmentGrades();
+      })
+      .catch((error) => {
+        console.log(error)
+      })
+      .finally(() => {
+        setisPageLoading(false);
+        return function () {
+          unmounted = true;
+          source.cancel("Cancelling in cleanup");
+        };
+      });
+
+  }
+
+  const handleSelectAvailableGrades = () => {
+    setSelectedGrades([...selectedGrades, ...availableGrades]);
+    setAvailableGrades([]);
+    setCheckedAvailableGrades([])
+    setCheckedSelectedGrades([])
+  }
+
+  const handleSelectCheckedGrades = () => {
+    setSelectedGrades([...selectedGrades, ...checkedAvailableGrades]);
+    setAvailableGrades([...availableGrades.filter(gd => !checkedAvailableGrades.map(grade => { return grade.value })?.includes(gd.value))])
+    setCheckedAvailableGrades([])
+    setCheckedSelectedGrades([])
+  }
+
+  const handleDeselectCheckedGrades = () => {
+    setAvailableGrades([...availableGrades, ...checkedSelectedGrades]);
+    setSelectedGrades([...selectedGrades.filter(gd => !checkedSelectedGrades.map(grade => { return grade.value })?.includes(gd.value))])
+    setCheckedSelectedGrades([]);
+    setCheckedAvailableGrades([])
+  }
+
+  const handleDeselectSelectedGrades = () => {
+    setAvailableGrades([...availableGrades, ...selectedGrades]);
+    setSelectedGrades([]);
+    setCheckedAvailableGrades([])
+    setCheckedSelectedGrades([])
+  }
+
+
+  const handleOnGradeCheck = (grade) => {
+    if (grade.active) {
+      if (checkedSelectedGrades?.findIndex(checkedgd => checkedgd.value === grade.value) > -1) {
+        setCheckedSelectedGrades([...checkedSelectedGrades?.filter(gd => gd.value !== grade.value)]);
+      }
+      else {
+        setCheckedSelectedGrades([...checkedSelectedGrades, grade]);
+      }
+    }
+    else {
+      if (checkedAvailableGrades?.findIndex(checkedgd => checkedgd.value === grade.value) > -1) {
+        setCheckedAvailableGrades([...checkedAvailableGrades?.filter(gd => gd.value !== grade.value)]);
+      }
+      else {
+        setCheckedAvailableGrades([...checkedAvailableGrades, grade]);
+      }
+    }
+  }
+
+  const handleGradeDelete = () => {
+
+  }
+
+  const customList = (items) => {
+    if (availableGrades.length === 0 && selectedGrades.length === 0) {
+      return (
+        <Paper style={{ minHeight: 264 }}>
+          <Typography className={classes.label} style={{ textAlign: 'center', paddingTop: '30%' }}> No grades added. </Typography>
+        </Paper>
+      )
+    }
+    return (
+      <React.Fragment>
+        <Paper style={{ minHeight: 305, maxHeight: 305, overflow: 'auto' }}>
+          <List dense component="div" role="list">
+            {items.map((grade, index) => {
+              const labelId = `transfer-list-item-${grade}-label`;
+
+              return (
+                <ListItem
+                  key={index}
+                  role="listitem"
+                  button
+                  disabled={!isEditMode}
+                  onClick={() => { handleOnGradeCheck(grade) }}
+                >
+                  <ListItemIcon>
+                    <Checkbox
+                      checked={checkedAvailableGrades?.findIndex(gd => gd.value === grade.value) > -1 || checkedSelectedGrades?.findIndex(gd => gd.value === grade.value) > -1}
+                      tabIndex={-1}
+                      disableRipple
+                      disabled={!isEditMode}
+                      inputProps={{
+                        'aria-labelledby': labelId,
+                      }}
+                    />
+                  </ListItemIcon>
+                  <ListItemText id={labelId} primary={`${grade?.value}`} />
+                </ListItem>
+              );
+            })}
+            <ListItem />
+          </List>
+        </Paper>
+      </React.Fragment>)
   }
 
   if (isPageLoadingFailed) {
@@ -357,8 +575,8 @@ const InstitutionSetup = () => {
               </Grid>
               <Grid xs={6} md={6} justifyContent='flex-end' className={classes.gridElement}>
                 {/* <Link onClick={() => { history.push("setup/billing-details") }} style={{ cursor: 'pointer' }}>Billing Details</Link> */}
-                
-                <Custom_Button style={{marginRight: 5}} variant='outlined' color="primary" size="medium" label={'Manage Subscription'} accessGranted={subscriptionObjPermission.read} onClick={() => {setOpenSubscriptionModal(true)}} />
+
+                <Custom_Button style={{ marginRight: 5 }} variant='outlined' color="primary" size="medium" label={'Manage Subscription'} accessGranted={subscriptionObjPermission.read} onClick={() => { setOpenSubscriptionModal(true) }} />
                 <Custom_Button variant='outlined' color="secondary" size="medium" label={'Billing Details'} accessGranted={subscriptionObjPermission.read} onClick={handleSubscriptionManagement} />
               </Grid>
             </Grid>
@@ -593,21 +811,95 @@ const InstitutionSetup = () => {
             </Grid>
           </Grid>
         </Container>
+        <Typography className={classes.header}>
+          Assessment Grades :
+        </Typography>
+        <Grid container rowSpacing={1} columnSpacing={{ xs: 1, sm: 2, md: 3 }}>
+          <Grid item xs={6}>
+            <Grid container spacing={2}>
+              <Grid item xs={5}>
+                <Box style={{ padding: 5 }}>
+                  <Button variant='outlined' style={{ width: '45%' }} color='inherit' size="small" disabled={!isEditMode} onClick={() => { setAddNewGrades(true) }}><AddCircleOutlineIcon style={{ paddingRight: 3 }} />Add</Button>
+                  <Button variant='outlined' style={{ width: '45%', float: 'right' }} color='inherit' size="small" disabled={checkedAvailableGrades?.length === 0 && !isEditMode} onClick={() => { setDeteteGrade(true) }}><DeleteOutlineIcon style={{ paddingRight: 3 }} />Delete</Button>
+                </Box>
+                <Typography style={{ backgroundColor: '#e9e9e9', color: 'black' }} className={classes.header}>
+                  Available Grades :
+                </Typography>
+                {customList(availableGrades)}
+              </Grid>
+              <Grid item xs={2} style={{ paddingTop: 47 }}>
+                <Grid container direction="column" alignItems="center" style={{ paddingTop: '75px' }}>
+                  <Button
+                    sx={{ my: 0.5 }}
+                    variant="outlined"
+                    size="small"
+                    onClick={handleSelectAvailableGrades}
+                    disabled={availableGrades.length === 0 || !isEditMode}
+                    aria-label="move all right"
+                  >
+                    ≫
+                  </Button>
+                  <Button
+                    sx={{ my: 0.5 }}
+                    variant="outlined"
+                    size="small"
+                    onClick={handleSelectCheckedGrades}
+                    disabled={checkedAvailableGrades.length === 0 || !isEditMode}
+                    aria-label="move selected right"
+                  >
+                    &gt;
+                  </Button>
+                  <Button
+                    sx={{ my: 0.5 }}
+                    variant="outlined"
+                    size="small"
+                    onClick={handleDeselectCheckedGrades}
+                    disabled={checkedSelectedGrades.length === 0 || !isEditMode}
+                    aria-label="move selected left"
+                  >
+                    &lt;
+                  </Button>
+                  <Button
+                    sx={{ my: 0.5 }}
+                    variant="outlined"
+                    size="small"
+                    onClick={handleDeselectSelectedGrades}
+                    disabled={selectedGrades.length === 0 || !isEditMode}
+                    aria-label="move all left"
+                  >
+                    ≪
+                  </Button>
+                </Grid>
+              </Grid>
+              <Grid item xs={5} style={{ paddingTop: 47 }}>
+                <Typography style={{ backgroundColor: '#e9e9e9', color: 'black' }} className={classes.header}>
+                  Selected Grades :
+                </Typography>
+                {customList(selectedGrades)}
+              </Grid>
+              <Grid>
 
+              </Grid>
+            </Grid>
+          </Grid>
+          <Grid item xs={6}>
+            {/************Empty Grid*************/}
+          </Grid>
+        </Grid>
         <Modal
           open={openSubscriptionModal}
-          onClose={() => {setOpenSubscriptionModal(false)}}
+          onClose={() => { setOpenSubscriptionModal(false) }}
           aria-labelledby="modal-modal-title"
           aria-describedby="modal-modal-description"
         >
           <Box className={classes.modalDesign}>
-            <SubscriptionManagement onCancel={(resp) => {setOpenSubscriptionModal(resp)}} onActions={handleScbscriptionActions} currentProduct={productInfo.name} />
+            <SubscriptionManagement onCancel={(resp) => { setOpenSubscriptionModal(resp) }} onActions={handleScbscriptionActions} currentProduct={productInfo.name} />
           </Box>
         </Modal>
 
         <Dialog
           open={enableChangePlanModal}
-          onClose={() => {setEnableChangePlanModal(false)}}
+          onClose={() => { setEnableChangePlanModal(false) }}
           aria-labelledby="alert-dialog-title"
           aria-describedby="alert-dialog-description"
         >
@@ -622,14 +914,74 @@ const InstitutionSetup = () => {
           <DialogActions>
             <Button onClick={() => {
               setUpdatingPlan({});
-              setEnableChangePlanModal(false)}
-              }>Close</Button>
+              setEnableChangePlanModal(false)
+            }
+            }>Close</Button>
             <Button onClick={handleUpdatePlan} autoFocus>
               Confirm
             </Button>
           </DialogActions>
         </Dialog>
         <Toaster />
+        <Dialog open={addNewGrades} onClose={() => {
+          setNewGradeName('')
+          setAddNewGrades(false)
+        }}>
+          <DialogTitle>New Assessment Grade</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              Please enter the Grade Name.
+            </DialogContentText>
+            <TextField
+              autoFocus
+              margin="dense"
+              id="name"
+              label="Grade :"
+              type="string"
+              fullWidth
+              value={newGradeName}
+              onChange={(name) => {
+                setNewGradeName(name.target.value)
+              }}
+              variant="standard"
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button
+              onClick={() => {
+                setAddNewGrades(false)
+              }}>Cancel</Button>
+            <Button
+              variant='contained'
+              style={{ backgroundColor: '#101F33', color: 'white' }}
+              onClick={() => {
+                handleAddNewAssessmentGrade()
+              }}>
+              Add Grade
+            </Button>
+          </DialogActions>
+        </Dialog>
+        <Dialog
+          open={deleteGrades}
+          onClose={() => { setDeteteGrade(false) }}
+          aria-labelledby="alert-dialog-title"
+          aria-describedby="alert-dialog-description"
+        >
+          <DialogTitle id="alert-dialog-title">
+            {"Delete Selected Grades?"}
+          </DialogTitle>
+          <DialogContent>
+            <DialogContentText id="alert-dialog-description">
+              {checkedAvailableGrades.map(grade => { return grade.value })}
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => { setDeteteGrade(false) }} autoFocus>Cancel</Button>
+            <Button onClick={() => { handleGradeDelete() }}>
+              Okay!
+            </Button>
+          </DialogActions>
+        </Dialog>
       </React.Fragment>
     )
   }

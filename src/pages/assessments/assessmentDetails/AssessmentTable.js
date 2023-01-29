@@ -12,7 +12,7 @@ export const resultsButton = (params) => {
     return <Button size="small" disabled = {!params.row?.resultEditors?.includes(JSON.parse(localStorage.getItem('userDetail'))?._id)} 
     onClick={() => {
         console.log(JSON.parse(localStorage.getItem('userDetail')))
-        console.log(params)
+        console.log(params.row)
     }} variant="outlined">Add Results</Button>
 }
 

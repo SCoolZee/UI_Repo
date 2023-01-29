@@ -17,7 +17,6 @@ import RemoveOutlinedIcon from '@mui/icons-material/RemoveOutlined';
 import EditIcon from '@mui/icons-material/Edit';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import Table from '@mui/material/Table';
-import InputAdornment from '@mui/material/InputAdornment';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
@@ -29,6 +28,7 @@ import { Autocomplete } from '@mui/material';
 import AddStudents from './AddStudents';
 import Custom_Button from '../../../../components/reusableElements/Custom_Button';
 import { breadcrumbsContext } from '../../../../components/context/Context';
+import NewFeeStructure from '../../feesStructures/newFeeStructure/NewFeeStructure';
 
 const NewClass = (params) => {
   const classes = useStyles();
@@ -63,6 +63,7 @@ const NewClass = (params) => {
   const [leadInstructor, setLeadInstructor] = React.useState([]);
   const [feeStructureList, setFeeStructureList] = React.useState([]);
   const [feeStructureObjPermission, setFeeStructureObjPermission] = React.useState({});
+  const [openFeeModal, setOpenFeeModal] = React.useState(false)
   const [breadcrumbsList, setBreadcrumbsList] = React.useContext(breadcrumbsContext);
   const [newClassDetails, setNewClassDetails] = React.useState({
     name: '',
@@ -671,7 +672,7 @@ const NewClass = (params) => {
                         />)}
                     />}
                     <Box style={{ marginLeft: 20 }}>
-                      <Button onClick={() => { history.push(`/setup/add-fee`, { feeStructureObjPermission }) }} style={{ backgroundColor: '#101F33', color: 'white' }}>Add Fee</Button>
+                      <Button onClick={() => { setOpenFeeModal(true)/*history.push(`/setup/add-fee`, { feeStructureObjPermission })*/ }} style={{ backgroundColor: '#101F33', color: 'white' }}>Add Fee</Button>
                     </Box>
                   </Box>
                   <Box xs={12} md={6} className={classes.gridElement}>
@@ -1042,6 +1043,16 @@ const NewClass = (params) => {
               handleCancel={() => { setAddStudentsEnable(false) }}
               handalSelectedStudents={handleSelectedStudents}
               associatedStudents={allStudents} />
+          </Box>
+        </Modal>
+        <Modal
+          open={openFeeModal}
+          onClose={() => { setOpenFeeModal(false) }}
+          aria-labelledby="modal-modal-title"
+          aria-describedby="modal-modal-description"
+        >
+          <Box style={{ backgroundColor: 'white' }} className={classes.modalDesign}>
+            <NewFeeStructure feeStructureObjPermission={feeStructureObjPermission} />
           </Box>
         </Modal>
       </React.Fragment>

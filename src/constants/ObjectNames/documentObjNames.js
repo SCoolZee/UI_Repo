@@ -7,7 +7,7 @@ exports.OBJECT = {
     ENROLMENT : 'enrolment',
     EVENT : 'event',
     FEESTRUCTURE : 'feestructure',
-    INSTITUTION_SETTINGS : 'institution_settings',
+    INSTITUTION_SETTINGS : 'institution-setting',
     PROFILE : 'profile',
     SUBJECT : 'subject',
     SUBSCRIPTION : 'subscription'

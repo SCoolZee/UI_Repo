@@ -26,7 +26,7 @@ const NewFeeStructure = (params) => {
 
     let unmounted = false;
 
-    const feeStructureObjPermission = params?.location?.state?.feeStructureObjPermission;
+    let feeStructureObjPermission = params?.location?.state?.feeStructureObjPermission || params.feeStructureObjPermission;
 
     function createData(description, amount, isEditMode) {
         return { description, amount, isEditMode };
@@ -48,6 +48,7 @@ const NewFeeStructure = (params) => {
     const [totalFee, setTotalFee] = useState(0);
 
     useEffect(() => {
+        console.log(params.feeStructureObjPermission)
         calculateTotal()
     }, [])
 
