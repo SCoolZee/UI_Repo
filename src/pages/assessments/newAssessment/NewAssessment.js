@@ -77,8 +77,6 @@ function NewAssessment(params) {
     setCheckedUnselectedScoringSystem([]);
   },[selectedScoringSystem,unselectedScoringSystem])
 
-  useEffect(() => {console.log(selectedScoringSystem)},[selectedScoringSystem])
-
 
   const getAllClasses = async () => {
     setisPageLoading(true);

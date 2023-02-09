@@ -1,6 +1,6 @@
 /* eslint-disable react/jsx-pascal-case */
 import React, { useEffect, useMemo, useRef } from 'react';
-import { Box, Card, Typography, TextField } from '@material-ui/core';
+import { Box, Card, Typography, TextField, Paper, List, ListItem, ListItemIcon, Checkbox, ListItemText } from '@material-ui/core';
 import { useHistory } from 'react-router-dom';
 import { Autocomplete } from '@mui/material';
 import Grid from '@mui/material/Grid';
@@ -19,6 +19,7 @@ import ArrowDropUpIcon from '@mui/icons-material/ArrowDropUp';
 import { dateParser, discardPastDateTime, resultsButton } from './AssessmentTable';
 import AssessmentDetailsAction from './AssessmentDetailsAction';
 import { grey } from '@mui/material/colors';
+import { scoringSystem } from '../../../constants/ScoriingSystemList';
 
 function AssessmentDetails(params) {
     const history = useHistory();
@@ -35,11 +36,16 @@ function AssessmentDetails(params) {
     const [allFacultyList, setAllFacultyList] = React.useState([]);
     const [pageSize, setPageSize] = React.useState(5);
     const [rowId, setRowId] = React.useState(null);
+    const [allScoringSystemList, setAllScoringSystemList] = React.useState([]);
+    const [unselectedScoringSystem, setUnselectedScoringSystem] = React.useState([]);
+    const [selectedScoringSystem, setSelectedScoringSystem] = React.useState([]);
+    const [checkedUnselectedScoringSystem, setCheckedUnselectedScoringSystem] = React.useState([]);
+    const [checkedSelectedScoringSystem, setCheckedSelectedScoringSystem] = React.useState([]);
 
 
 
     const actionButtons = (params) => {
-        return <AssessmentDetailsAction {...{ params,rowId, setRowId }} />
+        return <AssessmentDetailsAction {...{ params, rowId, setRowId }} />
     }
 
     const assessmentColumns = [
@@ -55,8 +61,15 @@ function AssessmentDetails(params) {
     }, [])
 
     useEffect(() => {
-        console.log(assessmentDetails)
-    }, [assessmentDetails])
+        setAssessmentDetails({ ...assessmentDetails, scoringSystem: selectedScoringSystem })
+    },[selectedScoringSystem])
+
+    useEffect(() => {
+        setCheckedSelectedScoringSystem([]);
+        setCheckedUnselectedScoringSystem([]);
+    }, [selectedScoringSystem, unselectedScoringSystem])
+
+
 
     const getAssessmentDetail = async (assessmentId) => {
         console.log('get assessment details')
@@ -67,6 +80,9 @@ function AssessmentDetails(params) {
             .then((response) => {
                 console.log(response.data)
                 setAssessmentDetails(response.data.assessment)
+                setSelectedScoringSystem(scoringSystem.filter(scoreSys => response.data.assessment?.scoringSystem?.map(score => {return score.value})?.includes(scoreSys.value)))
+                setUnselectedScoringSystem(scoringSystem.filter(scoreSys => !response.data.assessment?.scoringSystem?.map(score => {return score.value})?.includes(scoreSys.value)));
+                setAllScoringSystemList(scoringSystem);
                 setAssessmentObjPermission(response.data.accessDefination)
                 setTempAssessmentDetails(response.data.assessment)
                 setExpanded(response.data.assessment?.exams[0]?.class?._id)
@@ -155,47 +171,136 @@ function AssessmentDetails(params) {
 
     const handleSave = async () => {
         //assessmentDetails
-        if(!isEditMode){ 
-            setIsEditMode(true) 
+        if (!isEditMode) {
+            setIsEditMode(true)
         }
-        else{
-        unmounted = false;
-        setisPageLoading(true)
-        const source = axios.CancelToken.source();
-        await axios.patch(`${process.env.REACT_APP_SERVER}/update-assessment-deatils/${OBJECT.ASSESSMENT}`, {
-            updatedAssessmentDetails: assessmentDetails
-        })
-            .then((response) => {
-                console.log(response)
-                if (response.status === 200) {
-                    toast.success("Record Saved.")
-                     setIsEditMode(false);
-                }
+        else {
+            unmounted = false;
+            setisPageLoading(true)
+            const source = axios.CancelToken.source();
+            await axios.patch(`${process.env.REACT_APP_SERVER}/update-assessment-deatils/${OBJECT.ASSESSMENT}`, {
+                updatedAssessmentDetails: assessmentDetails
             })
-            .catch((error) => {
-                if (!unmounted) {
-                    if (error.request.status === 403) {
-                        localStorage.removeItem('userDetail');
-                        localStorage.removeItem('userToken');
-                        localStorage.removeItem('activeSubscription');
-                        history.replace('/login');
-                        history.go(0);
+                .then((response) => {
+                    console.log(response)
+                    if (response.status === 200) {
+                        toast.success("Record Saved.")
+                        setIsEditMode(false);
                     }
-                    else {
-                        toast.success("woops!! Failed to save the record.")
-                        console.log(error.request)
-                        //toast.error(error.request.error)
+                })
+                .catch((error) => {
+                    if (!unmounted) {
+                        if (error.request.status === 403) {
+                            localStorage.removeItem('userDetail');
+                            localStorage.removeItem('userToken');
+                            localStorage.removeItem('activeSubscription');
+                            history.replace('/login');
+                            history.go(0);
+                        }
+                        else {
+                            toast.success("woops!! Failed to save the record.")
+                            console.log(error.request)
+                            //toast.error(error.request.error)
+                        }
                     }
-                }
-            })
-            .finally(() => {
-                setisPageLoading(false);
-                return function () {
-                    unmounted = true;
-                    source.cancel("Cancelling in cleanup");
-                };
-            });
+                })
+                .finally(() => {
+                    setisPageLoading(false);
+                    return function () {
+                        unmounted = true;
+                        source.cancel("Cancelling in cleanup");
+                    };
+                });
         }
+    }
+
+    const handleSelectAllScoringSys = () => {
+        setSelectedScoringSystem(allScoringSystemList);
+        setCheckedSelectedScoringSystem([...checkedSelectedScoringSystem, checkedUnselectedScoringSystem]);
+        setUnselectedScoringSystem([]);
+        setCheckedUnselectedScoringSystem([]);
+    }
+
+    const handleSelectChecked = () => {
+        console.log(checkedUnselectedScoringSystem)
+        var tempUnselected = [...unselectedScoringSystem];
+        setSelectedScoringSystem([...selectedScoringSystem, ...checkedUnselectedScoringSystem]);
+        checkedUnselectedScoringSystem.forEach(checkedUnselected => {
+            tempUnselected.splice(tempUnselected.findIndex(scoreSys => scoreSys.value === checkedUnselected.value), 1);
+        });
+        setUnselectedScoringSystem(tempUnselected);
+    }
+
+    const handleDeselectChecked = () => {
+        console.log(checkedSelectedScoringSystem)
+        var tempUnselected = [...selectedScoringSystem];
+        setUnselectedScoringSystem([...unselectedScoringSystem, ...checkedSelectedScoringSystem]);
+        checkedSelectedScoringSystem.forEach(checkedSelected => {
+            tempUnselected.splice(tempUnselected.findIndex(scoreSys => scoreSys.value === checkedSelected.value), 1);
+        });
+        setSelectedScoringSystem(tempUnselected);
+    }
+
+    const handleDeselectScoringSys = () => {
+        setSelectedScoringSystem([]);
+        setUnselectedScoringSystem(allScoringSystemList);
+        setCheckedSelectedScoringSystem([])
+    }
+
+    const handleOnScoringSysChecked = (scoringSystem) => {
+        if(unselectedScoringSystem.findIndex(scoringSys => scoringSys.value === scoringSystem.value) > -1){
+            if(checkedUnselectedScoringSystem.findIndex(scoringSys => scoringSys.value === scoringSystem.value) > -1){
+              setCheckedUnselectedScoringSystem(checkedUnselectedScoringSystem.splice(checkedUnselectedScoringSystem.findIndex(scoringSys => scoringSys.value === scoringSystem.value),1));
+            }
+            else{
+              setCheckedUnselectedScoringSystem([...checkedUnselectedScoringSystem,scoringSystem])
+            }
+          }
+          else{
+            console.log(checkedSelectedScoringSystem.findIndex(scoringSys => scoringSys.value === scoringSystem.value) > -1)
+            if(checkedSelectedScoringSystem.findIndex(scoringSys => scoringSys.value === scoringSystem.value) > -1){
+              setCheckedSelectedScoringSystem(checkedSelectedScoringSystem.splice(checkedSelectedScoringSystem.findIndex(scoringSys => scoringSys.value === scoringSystem.value),1));
+            }
+            else{
+              setCheckedSelectedScoringSystem([...checkedSelectedScoringSystem,scoringSystem])
+            }
+          }
+    }
+
+    const customList = (items) => {
+        return (
+            <Paper style={{ minHeight: 175, maxHeight: 175, overflow: 'auto' }}>
+                <List dense component="div" role="list">
+                    {items.map((scoreSys) => {
+                        const labelId = `transfer-list-item-${scoreSys?.value}-label`;
+
+                        return (
+                            <ListItem
+                                key={scoreSys?.value}
+                                role="listitem"
+                                button
+                                //disabled={!isEditMode}
+                                //onClick={() => { !isEditMode && handleOnScoringSysChecked(scoreSys) }}
+                            >
+                                <ListItemIcon>
+                                    <Checkbox
+                                        checked={checkedSelectedScoringSystem.findIndex(scoringSys => scoringSys.value === scoreSys.value) > -1 || checkedUnselectedScoringSystem.findIndex(scoringSys => scoringSys.value === scoreSys.value) > -1}
+                                        tabIndex={-1}
+                                        disabled={!isEditMode}
+                                        disableRipple
+                                        onChange={() => { handleOnScoringSysChecked(scoreSys) }}
+                                        inputProps={{
+                                            'aria-labelledby': labelId,
+                                        }}
+                                    />
+                                </ListItemIcon>
+                                <ListItemText id={labelId} primary={`${scoreSys?.label}`} />
+                            </ListItem>
+                        );
+                    })}
+                    <ListItem />
+                </List>
+            </Paper>)
     }
 
     if (isPageLoading) {
@@ -227,7 +332,7 @@ function AssessmentDetails(params) {
                     Details :
                 </Typography>
                 <Grid container style={{ padding: 5, width: '100%', margin: 0, justifyContent: 'space-between' }} rowSpacing={1} columnSpacing={{ xs: 1, sm: 2, md: 3 }}>
-                    <Card style={{ width: '49%', paddingLeft: 8 }}>
+                    <Card style={{ padding: 8 }}>
                         <Grid item xs={6}>
                             <Box style={{ margin: 5 }}>
                                 <Typography className={classes.label}>Title :</Typography>
@@ -266,11 +371,73 @@ function AssessmentDetails(params) {
 
                                 />
                             </Box>
+                            <Box style={{ marginBottom: 20, width: 550 }}>
+                                <Typography className={classes.label}>Scoring System :</Typography>
+                                {invalidList.includes('scoringSystem') && <Typography color='#d32f2f' style={{ color: '#d32f2f', fontFamily: 'Roboto,Helvetica,Arial,sans-serif', fontWeight: 400, fontSize: '0.75rem' }}>Please select at least 1 scoring system</Typography>}
+                                <Grid container spacing={2}>
+                                    <Grid item xs={5} style={{ paddingTop: 10 }}>
+                                        <Typography style={{ backgroundColor: '#e9e9e9', color: 'black' }} className={classes.header}>
+                                            All Scorings Systems :
+                                        </Typography>
+                                        {customList(unselectedScoringSystem)}
+                                    </Grid>
+                                    <Grid item xs={2} style={{ paddingTop: 50 }}>
+                                        <Grid container direction="column" alignItems="center" style={{ paddingTop: '30px' }}>
+                                            <Button
+                                                sx={{ my: 0.5 }}
+                                                variant="outlined"
+                                                size="small"
+                                                onClick={handleSelectAllScoringSys}
+                                                disabled={unselectedScoringSystem.length === 0 || !isEditMode}
+                                                aria-label="move all right"
+                                            >
+                                                ≫
+                                            </Button>
+                                            <Button
+                                                sx={{ my: 0.5 }}
+                                                variant="outlined"
+                                                size="small"
+                                                onClick={handleSelectChecked}
+                                                disabled={checkedUnselectedScoringSystem.length === 0 || !isEditMode}
+                                                aria-label="move selected right"
+                                            >
+                                                &gt;
+                                            </Button>
+                                            <Button
+                                                sx={{ my: 0.5 }}
+                                                variant="outlined"
+                                                size="small"
+                                                onClick={handleDeselectChecked}
+                                                disabled={checkedSelectedScoringSystem.length === 0 || !isEditMode}
+                                                aria-label="move selected left"
+                                            >
+                                                &lt;
+                                            </Button>
+                                            <Button
+                                                sx={{ my: 0.5 }}
+                                                variant="outlined"
+                                                size="small"
+                                                onClick={handleDeselectScoringSys}
+                                                disabled={selectedScoringSystem.length === 0 || !isEditMode}
+                                                aria-label="move all left"
+                                            >
+                                                ≪
+                                            </Button>
+                                        </Grid>
+                                    </Grid>
+                                    <Grid item xs={5} style={{ paddingTop: 10 }}>
+                                        <Typography style={{ backgroundColor: '#e9e9e9', color: 'black' }} className={classes.header}>
+                                            Selected Scoring Systems :
+                                        </Typography>
+                                        {customList(selectedScoringSystem)}
+                                    </Grid>
+                                </Grid>
+                            </Box>
                         </Grid>
                     </Card>
-                    <Card style={{ width: '49%', paddingLeft: 3, padding: 5, display: 'grid' }}>
+                    <Card style={{ width: '49%', padding: 8 }}>
                         <Grid item xs={6}>
-                            <Box style={{ margin: 5 }}>
+                            <Box style={{ margin: 5, marginBottom: 30 }}>
                                 <Typography className={classes.label}>Owner :</Typography>
                                 {!isEditMode && <TextField
                                     className={classes.inputDesign}
@@ -314,7 +481,7 @@ function AssessmentDetails(params) {
                             </Box>
                         </Grid>
                         <Grid item xs={6}>
-                            <Box style={{ margin: 5 }}>
+                            <Box style={{ margin: 5, marginBottom: 30 }}>
                                 <Typography className={classes.label}>Start Date/Time :</Typography>
                                 <TextField
                                     className={classes.inputDesign}
@@ -333,7 +500,7 @@ function AssessmentDetails(params) {
                             </Box>
                         </Grid>
                         <Grid item xs={6}>
-                            <Box style={{ margin: 5 }}>
+                            <Box style={{ margin: 5, marginBottom: 30 }}>
                                 <Typography className={classes.label}>End Date/Time :</Typography>
                                 <TextField
                                     className={classes.inputDesign}
@@ -351,7 +518,7 @@ function AssessmentDetails(params) {
                             </Box>
                         </Grid>
                         <Grid item xs={6}>
-                            <Box style={{ margin: 5 }}>
+                            <Box style={{ margin: 5, marginBottom: 30 }}>
                                 <Typography className={classes.label}>Duration :</Typography>
                                 <TextField
                                     className={classes.inputDesign}
@@ -392,7 +559,7 @@ function AssessmentDetails(params) {
                                 <div style={{ height: 300, width: '100%', overflow: 'hidden' }}
                                     className={classes.tableHead}>
                                     <DataGrid
-                                        rows={exam.details?.map(detail => { return { id: detail.subject?._id, subject: detail.subject?.name, dateTime: new Date(detail.dateTime)?.toDateString() + ', ' + formateTime(new Date(detail.dateTime))?.strTime, results: 'results',classId : exam.class._id, assessmentId : assessmentDetails._id,examId : exam._id, detailsId: detail._id, subjectId : detail.subject?._id, resultEditors: handleResultEditorsList(exam.class._id, detail.subject?._id) } })}
+                                        rows={exam.details?.map(detail => { return { id: detail.subject?._id, subject: detail.subject?.name, dateTime: new Date(detail.dateTime)?.toDateString() + ', ' + formateTime(new Date(detail.dateTime))?.strTime, results: 'results', classId: exam.class._id, assessmentId: assessmentDetails._id, examId: exam._id, detailsId: detail._id, subjectId: detail.subject?._id, resultEditors: handleResultEditorsList(exam.class._id, detail.subject?._id) } })}
                                         columns={assessmentColumns}
                                         getupdatedRow={row => row.id}
                                         rowsPerPageOptions={[5, 10, 15]}
