@@ -1,20 +1,24 @@
 import * as React from 'react';
 import Box from '@mui/material/Box';
+import axios from 'axios';
 import Card from '@mui/material/Card';
 import Autocomplete from '@mui/material/Autocomplete';
 import CardActions from '@mui/material/CardActions';
 import CardContent from '@mui/material/CardContent';
 import Button from '@mui/material/Button';
+import toast, { Toaster } from "react-hot-toast";
 import { FormControl } from '@mui/material';
 import { Grid } from '@mui/material';
 import { Container, InputLabel } from '@material-ui/core';
 import { useStyles } from './UserStyle';
 import TextField from '@mui/material/TextField';
+import Loading from '../../components/loading/Loading';
 
 
 const UserReg = (props) => {
   const classes = useStyles();
   const [userName, setUserName] = React.useState(props.userDetails.name || '');
+  const [stateDetails, setStateDetails] = React.useState(props.stateDate || []);
   const [userPhone, setUserPhone] = React.useState(props.userDetails.phone || '');
   const [userEmail, setUserEmail] = React.useState(props.userDetails.email || '');
   const [addrLine1, setAddrLine1] = React.useState(props.userDetails.addressLine1 || '');
@@ -25,8 +29,10 @@ const UserReg = (props) => {
   const [country, setCountry] = React.useState(props.userDetails.country || '');
   const [pinCode, setPincode] = React.useState(props.userDetails.zipCode || '');
   const [invalidList, setInvalidList] = React.useState([]);
+  const [isPageLoading, setisPageLoading] = React.useState(false);
 
   const countryDetails = props.countryDetails;
+  let unmounted = false;
 
   React.useEffect(() => {
     console.log(props.userDetails)
@@ -34,9 +40,15 @@ const UserReg = (props) => {
 
   React.useEffect(() => {
     if(country === '' || country===undefined){
-    setCountry(countryDetails.find(country => country.iso3 === 'IND')?.name);
+      setCountry(countryDetails.find(country => country.country_short_name === 'IN')?.country_name);
     }
   }, [countryDetails])
+
+  React.useEffect(() => {
+    if(country){
+      getStateDetails()
+    }
+  },[country])
 
   const handleUserNameChange = (event) => {
     setUserName(event.target.value);
@@ -124,6 +136,37 @@ const UserReg = (props) => {
     props.handleUserDetails(UserData);
   }
 
+  const getStateDetails = async() => {
+    setisPageLoading(true);
+    unmounted = false;
+    const source = axios.CancelToken.source();
+    await axios.get(`${process.env.REACT_APP_SERVER}/state-details/${country}`)
+      .then((stateDetails) => {
+        console.log(stateDetails.data);
+        setStateDetails(stateDetails.data)
+      })
+      .catch((error) => {
+        console.log(error);
+        if (!unmounted) {
+          toast.error('Failed to get location options!');
+        }
+      })
+      .finally(() => {
+        setisPageLoading(false);
+        return function () {
+          unmounted = true;
+          source.cancel("Cancelling in cleanup");
+        };
+      })
+  }
+  if (isPageLoading) {
+    return (
+      <Box style={{ top: '50%' }}>
+        <Loading isPageLoading={isPageLoading} />
+      </Box>
+    )
+  }
+  else{
   return (
     <Box className={classes.box}>
       <Card variant="outlined">
@@ -206,15 +249,15 @@ const UserReg = (props) => {
                   />
                 </Container>
                 <Container className={classes.inputContainer}>
-                  <InputLabel required htmlFor="component-error">State</InputLabel>
+                <InputLabel required htmlFor="component-error">State</InputLabel>
                   <Autocomplete
                     sx={{ width: 305, bottom: 5, position: 'relative', marginTop: '8px' }}
-                    options={countryDetails?.find(ctry => ctry.name === country)?.states || []}
+                    options={stateDetails || []}
                     autoHighlight
-                    value={countryDetails?.find(ctry => ctry.name === country)?.states?.find(st => st.name === state) || ''}
-                    getOptionLabel={(option) => option.name || ''}
+                    value={stateDetails.find(st => st.state_name === state) || ''}
+                    getOptionLabel={(option) => option.state_name || ''}
                     id="state"
-                    onChange={(event, value) => { setState(value.name) }}
+                    onChange={(event, value) => { setState(value.state_name) }}
                     renderInput={(params) => (
                       <TextField
                         {...params}
@@ -231,29 +274,29 @@ const UserReg = (props) => {
                   />
                 </Container>
                 <Container className={classes.inputContainer}>
-                  <InputLabel required htmlFor="component-error">Country</InputLabel>
+                <InputLabel required htmlFor="component-error">Country</InputLabel>
                   <Autocomplete
                     sx={{ width: 305, bottom: 5, position: 'relative', marginTop: '10px' }}
                     options={countryDetails}
                     autoHighlight
                     ListboxProps={{ style: { maxHeight: 270 } }}
-                    value={countryDetails?.find(ctry => ctry.name === country) || {}}
-                    getOptionLabel={(option) => option.name || ''}
+                    value={countryDetails?.find(ctry => ctry.country_name === country) || {}}
+                    getOptionLabel={(option) => option.country_name || ''}
                     id="country"
                     onChange={(event, value) => {
                       setState('')
-                      setCountry(value.name)
+                      setCountry(value.country_name)
                     }}
                     renderOption={(props, option) => (
                       <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0, margin: 5 } }} {...props}>
-                        <img
+                        {/* <img
                           loading="lazy"
                           width="20"
                           src={`https://flagcdn.com/w20/${option.iso2.toLowerCase()}.png`}
                           srcSet={`https://flagcdn.com/w40/${option.iso2.toLowerCase()}.png 2x`}
                           alt=""
-                        />
-                        {option.name} ({option.iso3}) +{option.phone_code}
+                        /> */}
+                        {option.country_name}
                       </Box>
                     )}
                     renderInput={(params) => (
@@ -270,16 +313,6 @@ const UserReg = (props) => {
                       />
                     )}
                   />
-                  {/* <TextField
-                    error={invalidList.includes('country')}
-                    id="country"
-                    value={country}
-                    onChange={(country) => { setCountry(country.target.value) }}
-                    aria-describedby="component-error-text"
-                    helperText={!invalidList.includes('country') ? '' : "Country is invalid"}
-                    variant="standard"
-                    className={classes.input}
-                  /> */}
                 </Container>
               </FormControl>
             </Grid>
@@ -331,8 +364,10 @@ const UserReg = (props) => {
           <Button variant='contained' disabled={props.duplicateInstitution} size="medium" onClick={() => { validate(2) }}>Next</Button>
         </CardActions>
       </Card>
+      <Toaster/>
     </Box>
   );
+                    }
 }
 
 export default UserReg;

@@ -1,5 +1,7 @@
 import React, { Suspense } from 'react'
 import { Route } from 'react-router-dom'
+import AssessmentDetails from '../../pages/assessments/assessmentDetails/AssessmentDetails';
+//import Registration from '../../registration/Registration'
 import Loading from '../loading/Loading';
 
 const Login = React.lazy(() => import('../../authentication/login/Login'));
@@ -20,7 +22,7 @@ const AuthRouter = () => {
                     <PublicHome />
                 </Route>
                 <Route exact path="/registration">
-                    <Registration />
+                    <Registration/>
                 </Route>
                 <Route exact path="/registration/success">
                     <SubscriptionSuccess />

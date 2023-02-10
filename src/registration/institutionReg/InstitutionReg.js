@@ -20,6 +20,7 @@ const InstitutionReg = (props) => {
   const classes = useStyles();
 
   const [countryDetails, setCountryDetails] = React.useState(props.countryData || []);
+  const [stateDetails, setStateDetails] = React.useState(props.stateDate || []);
   const [instName, setInstName] = React.useState(props.institutionDetails.name || '');
   const [instPhone, setInstPhone] = React.useState(props.institutionDetails.phone || '');
   const [instEmail, setInstEmail] = React.useState(props.institutionDetails.email || '');
@@ -45,9 +46,15 @@ const InstitutionReg = (props) => {
 
   React.useEffect(() => {
     if (country === '' || country === undefined) {
-      setCountry(countryDetails.find(country => country.iso3 === 'IND')?.name);
+      setCountry(countryDetails.find(country => country.country_short_name === 'IN')?.country_name);
     }
   }, [countryDetails])
+
+  React.useEffect(() => {
+    if(country){
+      getStateDetails()
+    }
+  },[country])
 
   const handleInstNameChange = (event) => {
     setInstName(event.target.value);
@@ -59,13 +66,34 @@ const InstitutionReg = (props) => {
     const source = axios.CancelToken.source();
     await axios.get(`${process.env.REACT_APP_SERVER}/country-details`)
       .then((countryInfo) => {
-        console.log(countryInfo.data);
-        //console.log(countryInfo.data[100]);
         let tempCountryList = [];
-        countryInfo.data.forEach(country => {
+        countryInfo.data?.forEach(country => {
           tempCountryList.push(country);
         });
         setCountryDetails(tempCountryList)
+      })
+      .catch((error) => {
+        console.log(error);
+        if (!unmounted) {
+          toast.error('Failed to get location options!');
+        }
+      })
+      .finally(() => {
+        return function () {
+          unmounted = true;
+          source.cancel("Cancelling in cleanup");
+        };
+      })
+  }
+
+  const getStateDetails = async() => {
+    setisPageLoading(true);
+    unmounted = false;
+    const source = axios.CancelToken.source();
+    await axios.get(`${process.env.REACT_APP_SERVER}/state-details/${country}`)
+      .then((stateDetails) => {
+        console.log(stateDetails.data);
+        setStateDetails(stateDetails.data)
       })
       .catch((error) => {
         console.log(error);
@@ -254,12 +282,12 @@ const InstitutionReg = (props) => {
                   <InputLabel required htmlFor="component-error">State</InputLabel>
                   <Autocomplete
                     sx={{ width: 305, bottom: 5, position: 'relative', marginTop: '8px' }}
-                    options={countryDetails?.find(ctry => ctry.name === country)?.states || []}
+                    options={stateDetails || []}
                     autoHighlight
-                    value={countryDetails?.find(ctry => ctry.name === country)?.states?.find(st => st.name === state) || ''}
-                    getOptionLabel={(option) => option.name || ''}
+                    value={stateDetails.find(st => st.state_name === state) || ''}
+                    getOptionLabel={(option) => option.state_name || ''}
                     id="state"
-                    onChange={(event, value) => { setState(value.name) }}
+                    onChange={(event, value) => { setState(value.state_name) }}
                     renderInput={(params) => (
                       <TextField
                         {...params}
@@ -282,23 +310,23 @@ const InstitutionReg = (props) => {
                     options={countryDetails}
                     autoHighlight
                     ListboxProps={{ style: { maxHeight: 270 } }}
-                    value={countryDetails?.find(ctry => ctry.name === country) || {}}
-                    getOptionLabel={(option) => option.name || ''}
+                    value={countryDetails?.find(ctry => ctry.country_name === country) || {}}
+                    getOptionLabel={(option) => option.country_name || ''}
                     id="country"
                     onChange={(event, value) => {
                       setState('')
-                      setCountry(value.name)
+                      setCountry(value.country_name)
                     }}
                     renderOption={(props, option) => (
                       <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0, margin: 5 } }} {...props}>
-                        <img
+                        {/* <img
                           loading="lazy"
                           width="20"
                           src={`https://flagcdn.com/w20/${option.iso2.toLowerCase()}.png`}
                           srcSet={`https://flagcdn.com/w40/${option.iso2.toLowerCase()}.png 2x`}
                           alt=""
-                        />
-                        {option.name} ({option.iso3}) +{option.phone_code}
+                        /> */}
+                        {option.country_name}
                       </Box>
                     )}
                     renderInput={(params) => (
@@ -315,16 +343,6 @@ const InstitutionReg = (props) => {
                       />
                     )}
                   />
-                  {/* <TextField
-                    error={invalidList.includes('country')}
-                    id="country"
-                    value={country}
-                    onChange={(country) => {setCountry(country.target.value)}}
-                    aria-describedby="component-error-text"
-                    helperText={!invalidList.includes('country') ? '' : "Country is invalid"}
-                    variant="standard"
-                    className={classes.input}
-                  /> */}
                 </Container>
               </FormControl>
             </Grid>

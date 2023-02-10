@@ -1,6 +1,6 @@
 /* eslint-disable react/jsx-pascal-case */
 import React, { useEffect, useMemo, useRef } from 'react';
-import { Box, Card, Typography, TextField, Paper, List, ListItem, ListItemIcon, Checkbox, ListItemText } from '@material-ui/core';
+import { Box, Card, Typography, TextField, Paper, List, ListItem, ListItemIcon, Checkbox, ListItemText, Modal } from '@material-ui/core';
 import { useHistory } from 'react-router-dom';
 import { Autocomplete } from '@mui/material';
 import Grid from '@mui/material/Grid';
@@ -16,10 +16,11 @@ import Custom_Button from '../../../components/reusableElements/Custom_Button';
 import { formateTime } from '../../../components/commonController/commonController';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import ArrowDropUpIcon from '@mui/icons-material/ArrowDropUp';
-import { dateParser, discardPastDateTime, resultsButton } from './AssessmentTable';
+import { dateParser, discardPastDateTime } from './AssessmentTable';
 import AssessmentDetailsAction from './AssessmentDetailsAction';
 import { grey } from '@mui/material/colors';
 import { scoringSystem } from '../../../constants/ScoriingSystemList';
+import AssessmentResult from '../assessmentResults/AssessmentResult';
 
 function AssessmentDetails(params) {
     const history = useHistory();
@@ -41,11 +42,21 @@ function AssessmentDetails(params) {
     const [selectedScoringSystem, setSelectedScoringSystem] = React.useState([]);
     const [checkedUnselectedScoringSystem, setCheckedUnselectedScoringSystem] = React.useState([]);
     const [checkedSelectedScoringSystem, setCheckedSelectedScoringSystem] = React.useState([]);
+    const [openAddResults, setOpenAddResults] = React.useState({isOpen: false, params : {}});
 
 
 
     const actionButtons = (params) => {
         return <AssessmentDetailsAction {...{ params, rowId, setRowId }} />
+    }
+
+    const resultsButton = (params) => {
+        return <Button size="small" disabled={!params.row?.resultEditors?.includes(JSON.parse(localStorage.getItem('userDetail'))?._id)}
+            onClick={() => {
+                setOpenAddResults({isOpen: true, params : params.row})
+                console.log(JSON.parse(localStorage.getItem('userDetail')))
+                console.log(params.row)
+            }} variant="outlined">Add Results</Button>
     }
 
     const assessmentColumns = [
@@ -62,7 +73,7 @@ function AssessmentDetails(params) {
 
     useEffect(() => {
         setAssessmentDetails({ ...assessmentDetails, scoringSystem: selectedScoringSystem })
-    },[selectedScoringSystem])
+    }, [selectedScoringSystem])
 
     useEffect(() => {
         setCheckedSelectedScoringSystem([]);
@@ -80,8 +91,8 @@ function AssessmentDetails(params) {
             .then((response) => {
                 console.log(response.data)
                 setAssessmentDetails(response.data.assessment)
-                setSelectedScoringSystem(scoringSystem.filter(scoreSys => response.data.assessment?.scoringSystem?.map(score => {return score.value})?.includes(scoreSys.value)))
-                setUnselectedScoringSystem(scoringSystem.filter(scoreSys => !response.data.assessment?.scoringSystem?.map(score => {return score.value})?.includes(scoreSys.value)));
+                setSelectedScoringSystem(scoringSystem.filter(scoreSys => response.data.assessment?.scoringSystem?.map(score => { return score.value })?.includes(scoreSys.value)))
+                setUnselectedScoringSystem(scoringSystem.filter(scoreSys => !response.data.assessment?.scoringSystem?.map(score => { return score.value })?.includes(scoreSys.value)));
                 setAllScoringSystemList(scoringSystem);
                 setAssessmentObjPermission(response.data.accessDefination)
                 setTempAssessmentDetails(response.data.assessment)
@@ -248,23 +259,23 @@ function AssessmentDetails(params) {
     }
 
     const handleOnScoringSysChecked = (scoringSystem) => {
-        if(unselectedScoringSystem.findIndex(scoringSys => scoringSys.value === scoringSystem.value) > -1){
-            if(checkedUnselectedScoringSystem.findIndex(scoringSys => scoringSys.value === scoringSystem.value) > -1){
-              setCheckedUnselectedScoringSystem(checkedUnselectedScoringSystem.splice(checkedUnselectedScoringSystem.findIndex(scoringSys => scoringSys.value === scoringSystem.value),1));
+        if (unselectedScoringSystem.findIndex(scoringSys => scoringSys.value === scoringSystem.value) > -1) {
+            if (checkedUnselectedScoringSystem.findIndex(scoringSys => scoringSys.value === scoringSystem.value) > -1) {
+                setCheckedUnselectedScoringSystem(checkedUnselectedScoringSystem.splice(checkedUnselectedScoringSystem.findIndex(scoringSys => scoringSys.value === scoringSystem.value), 1));
             }
-            else{
-              setCheckedUnselectedScoringSystem([...checkedUnselectedScoringSystem,scoringSystem])
+            else {
+                setCheckedUnselectedScoringSystem([...checkedUnselectedScoringSystem, scoringSystem])
             }
-          }
-          else{
+        }
+        else {
             console.log(checkedSelectedScoringSystem.findIndex(scoringSys => scoringSys.value === scoringSystem.value) > -1)
-            if(checkedSelectedScoringSystem.findIndex(scoringSys => scoringSys.value === scoringSystem.value) > -1){
-              setCheckedSelectedScoringSystem(checkedSelectedScoringSystem.splice(checkedSelectedScoringSystem.findIndex(scoringSys => scoringSys.value === scoringSystem.value),1));
+            if (checkedSelectedScoringSystem.findIndex(scoringSys => scoringSys.value === scoringSystem.value) > -1) {
+                setCheckedSelectedScoringSystem(checkedSelectedScoringSystem.splice(checkedSelectedScoringSystem.findIndex(scoringSys => scoringSys.value === scoringSystem.value), 1));
             }
-            else{
-              setCheckedSelectedScoringSystem([...checkedSelectedScoringSystem,scoringSystem])
+            else {
+                setCheckedSelectedScoringSystem([...checkedSelectedScoringSystem, scoringSystem])
             }
-          }
+        }
     }
 
     const customList = (items) => {
@@ -279,8 +290,8 @@ function AssessmentDetails(params) {
                                 key={scoreSys?.value}
                                 role="listitem"
                                 button
-                                //disabled={!isEditMode}
-                                //onClick={() => { !isEditMode && handleOnScoringSysChecked(scoreSys) }}
+                            //disabled={!isEditMode}
+                            //onClick={() => { !isEditMode && handleOnScoringSysChecked(scoreSys) }}
                             >
                                 <ListItemIcon>
                                     <Checkbox
@@ -589,6 +600,24 @@ function AssessmentDetails(params) {
                 })
 
                 }
+                <Modal
+                    open={openAddResults.isOpen}
+                    onClose={() => { setOpenAddResults({isOpen : false, params : {}}) }}
+                    aria-labelledby="modal-modal-title"
+                    aria-describedby="modal-modal-description"
+                >
+                    <Box sx={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        width: '90%',
+                        bgcolor: 'background.paper',
+                        p: 4,
+                    }}>
+                        <AssessmentResult examData={openAddResults.params}/>
+                    </Box>
+                </Modal>
                 <Toaster />
             </React.Fragment>
         )

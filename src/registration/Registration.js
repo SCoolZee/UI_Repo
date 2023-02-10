@@ -15,7 +15,7 @@ import Loading from '../components/loading/Loading';
 import { Alert } from '@mui/material';
 import { OBJECT } from '../constants/ObjectNames/documentObjNames';
 
-const Registration = () => {
+function Registration(params){
     const history = useHistory();
     let unmounted = false;
 
@@ -40,6 +40,10 @@ const Registration = () => {
             handleRegestration(activeStep);
         }
     }, [activeStep])
+
+    useEffect(() => {
+        console.log('Its Registration')
+    },[])
 
     // const handleSnackbarClose = () => {
     //     setErrorMsg({ open: false, message: '', vertical: 'top', horizontal: 'center', });
@@ -123,7 +127,7 @@ const Registration = () => {
                     </Stepper>
                     {
                         activeStep === 0 ?
-                            <InstitutionReg institutionDetails={institutionDetails} updateActiveStep={(next) =>{setActiveStep(next)}} countryData = {countryDetails} countryDetails={(countryData) => {setCountryDetails(countryData)}} handleInstitutionDetails={(data) => { setInstitutionDetails(data) }} />
+                            <InstitutionReg institutionDetails={institutionDetails} updateActiveStep={(next) =>{setActiveStep(next)}} countryData = {countryDetails}  countryDetails={(countryData) => {setCountryDetails(countryData)}} handleInstitutionDetails={(data) => { setInstitutionDetails(data) }} />
                             : activeStep === 1 ?
                                 <UserReg duplicateInstitution={duplicateInstitution} userDetails={userDetails} countryDetails={countryDetails} updateActiveStep={(next) =>{setActiveStep(next)}} handleUserDetails={(userData) => { setUserDetails(userData) }} />
                                 : activeStep === 2 ?
